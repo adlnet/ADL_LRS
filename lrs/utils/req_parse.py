@@ -14,7 +14,7 @@ from django.core.urlresolvers import reverse
 from django.http import QueryDict
 
 from . import convert_to_datatype, convert_post_body_to_dict
-from etag import get_etag_info
+from .etag import get_etag_info
 from ..exceptions import OauthUnauthorized, OauthBadRequest, ParamError, BadRequest
 
 from oauth_provider.utils import get_oauth_request, require_params
@@ -132,7 +132,7 @@ def parse_post_put_body(request, r_dict):
                             # QueryDict will create {'foo':''} key for any
                             # string - does not care if valid query string or
                             # not
-                            for k, v in r_dict['body'].items():
+                            for k, v in list(r_dict['body'].items()):
                                 if not v:
                                     raise BadRequest(
                                         "Could not parse request body, no value for: %s" % k)
@@ -149,7 +149,7 @@ def parse_cors_request(request, r_dict):
         r_dict['method'] = request.GET['method'].upper()
     except Exception:
         raise BadRequest("Could not find method parameter for CORS request")
-    if len(request.GET.keys()) > 1:
+    if len(list(request.GET.keys())) > 1:
         raise BadRequest("CORS must only include method in query string parameters") 
 
     # Convert body to dict
@@ -178,7 +178,7 @@ def parse_cors_request(request, r_dict):
                 else:
                     # QueryDict will create {'foo':''} key for any string -
                     # does not care if valid query string or not
-                    for k, v in r_dict['body'].items():
+                    for k, v in list(r_dict['body'].items()):
                         if not v:
                             raise BadRequest(
                                 "Could not parse request body in CORS request, no value for: %s" % k)

@@ -50,7 +50,7 @@ def non_xapi_auth(func):
         elif request.user:
             auth = request.user
         if auth:
-            if isinstance(auth, basestring):
+            if isinstance(auth, str):
                 if auth[:6] == 'OAuth ':
                     oauth_request = get_oauth_request(request)
                     # Returns HttpBadRequest if missing any params
@@ -186,7 +186,7 @@ def http_auth_helper(request):
                 # Currently, only basic http auth is used.
                 try:
                     uname, passwd = base64.b64decode(auth[1]).split(':')
-                except Exception, e:
+                except Exception as e:
                     raise BadRequest("Authorization failure: %s" % e.message)
                 # Sent in empty auth - now allowed when not allowing empty auth
                 # in settings

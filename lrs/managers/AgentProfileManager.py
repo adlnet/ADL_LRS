@@ -47,7 +47,7 @@ class AgentProfileManager():
             orig_prof = json.loads(p.json_profile)
             post_profile = json.loads(post_profile)
             merged = json.dumps(
-                dict(orig_prof.items() + post_profile.items()))
+                dict(list(orig_prof.items()) + list(post_profile.items())))
             p.json_profile = merged
             p.etag = etag.create_tag(merged)
 

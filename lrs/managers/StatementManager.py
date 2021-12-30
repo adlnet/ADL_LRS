@@ -40,7 +40,7 @@ class StatementManager():
                 auth_info['agent'] = None
 
     def build_context_activities(self, stmt, auth_info, con_act_data):
-        for con_act_group in con_act_data.items():
+        for con_act_group in list(con_act_data.items()):
             # Incoming contextActivities can either be a list or dict
             if isinstance(con_act_group[1], list):
                 for con_act in con_act_group[1]:
@@ -95,10 +95,10 @@ class StatementManager():
     def build_result(self, stmt_data):
         if 'result' in stmt_data:
             result = stmt_data['result']
-            for k, v in result.iteritems():
+            for k, v in result.items():
                 stmt_data['result_' + k] = v
             if 'result_score' in stmt_data:
-                for k, v in stmt_data['result_score'].iteritems():
+                for k, v in stmt_data['result_score'].items():
                     stmt_data['result_score_' + k] = v
                 del stmt_data['result']['score']
                 del stmt_data['result_score']
@@ -124,7 +124,7 @@ class StatementManager():
     def build_context(self, stmt_data):
         if 'context' in stmt_data:
             context = stmt_data['context']
-            for k, v in context.iteritems():
+            for k, v in context.items():
                 stmt_data['context_' + k] = v
             if 'context_instructor' in stmt_data:
                 stmt_data['context_instructor'] = Agent.objects.retrieve_or_create(
@@ -151,7 +151,7 @@ class StatementManager():
         # Save verb displays
         if 'display' in incoming_verb:
             verb_object.canonical_data['display'] = dict(
-                existing_lang_maps.items() + incoming_verb['display'].items())
+                list(existing_lang_maps.items()) + list(incoming_verb['display'].items()))
 
         verb_object.canonical_data['id'] = verb_id
         verb_object.save()

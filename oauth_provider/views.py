@@ -1,6 +1,6 @@
 import oauth2 as oauth
 import json
-from urllib import urlencode
+from urllib.parse import urlencode
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
@@ -16,11 +16,11 @@ from django.template import RequestContext
 from oauth_provider.forms import AuthorizeRequestTokenForm
 from oauth_provider.compat import UnsafeRedirect
 
-from store import store, InvalidConsumerError, InvalidTokenError
-from utils import verify_oauth_request, get_oauth_request, require_params, send_oauth_error
-from utils import is_xauth_request
-from consts import OUT_OF_BAND
-from models import Token
+from .store import store, InvalidConsumerError, InvalidTokenError
+from .utils import verify_oauth_request, get_oauth_request, require_params, send_oauth_error
+from .utils import is_xauth_request
+from .consts import OUT_OF_BAND
+from .models import Token
 
 OAUTH_AUTHORIZE_VIEW = 'OAUTH_AUTHORIZE_VIEW'
 OAUTH_CALLBACK_VIEW = 'OAUTH_CALLBACK_VIEW'

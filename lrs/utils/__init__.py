@@ -1,7 +1,7 @@
 import ast
 import json
-import urllib
-import urlparse
+import urllib.request, urllib.parse, urllib.error
+import urllib.parse
 from isodate.isodatetime import parse_datetime
 from django.conf import settings
 
@@ -53,7 +53,7 @@ def convert_to_datatype(incoming_data):
     except Exception:
         try:
             data = ast.literal_eval(incoming_data)
-        except Exception, e:
+        except Exception as e:
             raise e
     return data
 
@@ -64,10 +64,10 @@ def convert_post_body_to_dict(incoming_data):
     for p in pairs:
         # this is checked for cors requests
         if p.startswith('content='):
-            if p == urllib.unquote_plus(p):
+            if p == urllib.parse.unquote_plus(p):
                 encoded = False
             break
-    qs = urlparse.parse_qsl(incoming_data)
+    qs = urllib.parse.parse_qsl(incoming_data)
     return dict((k, v) for k, v in qs), encoded
 
 
@@ -81,7 +81,7 @@ def get_lang(langdict, lang):
                     try:
                         return {settings.LANGUAGE_CODE: langdict[settings.LANGUAGE_CODE]}
                     except KeyError:
-                        first = langdict.iteritems().next()
+                        first = next(iter(langdict.items()))
                         return {first[0]: first[1]} 
                 # Return where key = lang
                 try:
@@ -91,10 +91,10 @@ def get_lang(langdict, lang):
                     # header, try matching it against the keys again ('en' would match 'en-US')
                     if not '-' in la:
                         # get all keys from langdict...get all first parts of them..if la is in it, return it
-                        for k in langdict.keys():
+                        for k in list(langdict.keys()):
                             if '-' in k:
                                 if la == k.split('-')[0]:
                                     return {la: langdict[k]}                    
                     pass
-    first = langdict.iteritems().next()
+    first = next(iter(langdict.items()))
     return {first[0]: first[1]}

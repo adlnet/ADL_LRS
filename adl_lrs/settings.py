@@ -1,7 +1,7 @@
 # Django settings for adl_lrs project.
 from os import path
 from os.path import dirname, abspath
-from ConfigParser import RawConfigParser
+from configparser import RawConfigParser
 
 ALLOWED_HOSTS = ['*']
 
@@ -287,13 +287,13 @@ LOGGING = {
     'disable_existing_loggers': False,
     'formatters': {
         'verbose': {
-            'format': u'%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s'
+            'format': '%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s'
         },
         'standard': {
-            'format': u'%(asctime)s [%(levelname)s] %(name)s: %(message)s'
+            'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
         },
         'simple': {
-            'format': u'%(levelname)s %(message)s'
+            'format': '%(levelname)s %(message)s'
         },
     },
     'handlers': {

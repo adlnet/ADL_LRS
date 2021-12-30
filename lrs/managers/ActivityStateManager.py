@@ -75,7 +75,7 @@ class ActivityStateManager():
             orig_state = json.loads(s.json_state)
             post_state = json.loads(post_state)
             merged = json.dumps(
-                dict(orig_state.items() + post_state.items()))
+                dict(list(orig_state.items()) + list(post_state.items())))
             s.json_state = merged
             s.etag = etag.create_tag(merged)
 

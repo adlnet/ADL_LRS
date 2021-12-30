@@ -3,8 +3,8 @@ from isodate.isoerror import ISO8601Error
 import uuid
 
 from . import get_agent_ifp, convert_to_datatype
-from authorization import auth
-from StatementValidator import StatementValidator
+from .authorization import auth
+from .StatementValidator import StatementValidator
 
 from ..models import Statement, Agent, Activity, ActivityState, ActivityProfile, AgentProfile
 from ..exceptions import ParamConflict, ParamError, Forbidden, BadRequest, IDNotFoundError
@@ -77,9 +77,9 @@ def server_validate_statement(stmt, auth, content_type):
 
 @auth
 def statements_post(req_dict):
-    if req_dict['params'].keys():
+    if list(req_dict['params'].keys()):
         raise ParamError("The post statements request contained unexpected parameters: %s" % ", ".join(
-            req_dict['params'].keys()))
+            list(req_dict['params'].keys())))
 
     try:
         validator = StatementValidator(req_dict['body'])

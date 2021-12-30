@@ -168,7 +168,7 @@ def get_store(path='oauth_provider.store.db.ModelStore'):
         store_class = getattr(import_module(module), attr)
     except ValueError:
         raise ImproperlyConfigured('Invalid oauth store string: "%s"' % path)
-    except ImportError, e:
+    except ImportError as e:
         raise ImproperlyConfigured(
             'Error loading oauth store module "%s": "%s"' % (module, e))
     except AttributeError:

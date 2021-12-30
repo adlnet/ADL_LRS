@@ -42,7 +42,7 @@ class Verb(models.Model):
         if ids_only:
             return {'id': self.verb_id}
         ret = OrderedDict(self.canonical_data)
-        if 'display' in ret and ret['display'].items():
+        if 'display' in ret and list(ret['display'].items()):
             ret['display'] = get_lang(self.canonical_data['display'], lang)
         return ret
 
@@ -121,7 +121,7 @@ class AgentManager(models.Manager):
                 try:
                     agent = Agent.objects.create(**kwargs)
                     created = True
-                except IntegrityError, ValidationError:
+                except IntegrityError as ValidationError:
                     # Try getting agent by IFP in ifp_dict
                     agent = Agent.objects.filter(**ifp_dict)[0]
                     created = False
@@ -155,7 +155,7 @@ class AgentManager(models.Manager):
                     try:
                         agent = Agent.objects.create(**kwargs)
                         created = True
-                    except IntegrityError, ValidationError:
+                    except IntegrityError as ValidationError:
                         agent = Agent.objects.get(
                             oauth_identifier=created_oauth_identifier)
                         created = False
@@ -171,7 +171,7 @@ class AgentManager(models.Manager):
                     try:
                         agent = Agent.objects.create(**kwargs)
                         created = True
-                    except IntegrityError, ValidationError:
+                    except IntegrityError as ValidationError:
                         agent = Agent.objects.get(
                             oauth_identifier=created_oauth_identifier)
                         created = False
@@ -305,19 +305,19 @@ class Activity(models.Model):
         if 'objectType' not in self.canonical_data:
             ret['objectType'] = 'Activity'
         if 'definition' in self.canonical_data:
-            if 'name' in ret['definition'] and ret['definition']['name'].items():
+            if 'name' in ret['definition'] and list(ret['definition']['name'].items()):
                 ret['definition']['name'] = get_lang(
                     ret['definition']['name'], lang)
-            if 'description' in ret['definition'] and ret['definition']['description'].items():
+            if 'description' in ret['definition'] and list(ret['definition']['description'].items()):
                 ret['definition']['description'] = get_lang(
                     ret['definition']['description'], lang)
             if 'scale' in ret['definition']:
                 for s in ret['definition']['scale']:
-                    if s.items():
+                    if list(s.items()):
                         s['description'] = get_lang(s['description'], lang)
             if 'choices' in ret['definition']:
                 for c in ret['definition']['choices']:
-                    if c.items():
+                    if list(c.items()):
                         c['description'] = get_lang(c['description'], lang)
             if 'steps' in ret['definition']:
                 for st in ret['definition']['steps']:
@@ -328,7 +328,7 @@ class Activity(models.Model):
                     if so.items:
                         so['description'] = get_lang(so['description'], lang)
                 for t in ret['definition']['target']:
-                    if t.items():
+                    if list(t.items()):
                         t['description'] = get_lang(t['description'], lang)
         return ret
 
@@ -682,9 +682,9 @@ class StatementAttachment(models.Model):
 
     def return_attachment_with_lang(self, lang=None):
         ret = OrderedDict(self.canonical_data)
-        if 'display' in ret and ret['display'].items():
+        if 'display' in ret and list(ret['display'].items()):
             ret['display'] = get_lang(self.canonical_data['display'], lang)
-        if 'description' in ret and ret['description'].items():
+        if 'description' in ret and list(ret['description'].items()):
             ret['description'] = get_lang(
                 self.canonical_data['description'], lang)
         return ret
@@ -711,7 +711,7 @@ class ActivityState(models.Model):
         super(ActivityState, self).delete(*args, **kwargs)
 
     def save(self, *args, **kwargs):
-        if self.json_state and isinstance(self.json_state, basestring):
+        if self.json_state and isinstance(self.json_state, str):
             try:
                 json.loads(self.json_state)
             except Exception:
@@ -719,7 +719,7 @@ class ActivityState(models.Model):
                     ast.literal_eval(self.json_state)
                 except Exception:
                     raise BadRequest("The Activity State body is not valid JSON")
-        elif self.json_state and not isinstance(self.json_state, basestring):
+        elif self.json_state and not isinstance(self.json_state, str):
             raise BadRequest("The Activity State body is not valid JSON")
         super(ActivityState, self).save(*args, **kwargs)
 
@@ -739,7 +739,7 @@ class ActivityProfile(models.Model):
         super(ActivityProfile, self).delete(*args, **kwargs)
 
     def save(self, *args, **kwargs):
-        if self.json_profile and isinstance(self.json_profile, basestring):
+        if self.json_profile and isinstance(self.json_profile, str):
             try:
                 json.loads(self.json_profile)
             except Exception:
@@ -747,7 +747,7 @@ class ActivityProfile(models.Model):
                     ast.literal_eval(self.json_profile)
                 except Exception:
                     raise BadRequest("The Activity Profile body is not valid JSON")
-        elif self.json_profile and not isinstance(self.json_profile, basestring):
+        elif self.json_profile and not isinstance(self.json_profile, str):
             raise BadRequest("The Activity Profile body is not valid JSON")
         super(ActivityProfile, self).save(*args, **kwargs)
 
@@ -767,7 +767,7 @@ class AgentProfile(models.Model):
         super(AgentProfile, self).delete(*args, **kwargs)
 
     def save(self, *args, **kwargs):
-        if self.json_profile and isinstance(self.json_profile, basestring):
+        if self.json_profile and isinstance(self.json_profile, str):
             try:
                 json.loads(self.json_profile)
             except Exception:
@@ -775,6 +775,6 @@ class AgentProfile(models.Model):
                     ast.literal_eval(self.json_profile)
                 except Exception:
                     raise BadRequest("The Agent Profile body is not valid JSON")
-        elif self.json_profile and not isinstance(self.json_profile, basestring):
+        elif self.json_profile and not isinstance(self.json_profile, str):
             raise BadRequest("The Agent Profile body is not valid JSON")
         super(AgentProfile, self).save(*args, **kwargs)  

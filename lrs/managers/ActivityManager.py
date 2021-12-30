@@ -28,45 +28,45 @@ class ActivityManager():
             if 'description' not in self.activity.canonical_data['definition']:
                 self.activity.canonical_data['definition']['description'] = {}
 
-            self.activity.canonical_data['definition']['name'] = dict(self.activity.canonical_data['definition']['name'].items() +
-                                                                      incoming_act_def['name'].items())
-            self.activity.canonical_data['definition']['description'] = dict(self.activity.canonical_data['definition']['description'].items() +
-                                                                             incoming_act_def['description'].items())
+            self.activity.canonical_data['definition']['name'] = dict(list(self.activity.canonical_data['definition']['name'].items()) +
+                                                                      list(incoming_act_def['name'].items()))
+            self.activity.canonical_data['definition']['description'] = dict(list(self.activity.canonical_data['definition']['description'].items()) +
+                                                                             list(incoming_act_def['description'].items()))
             if 'scale' in incoming_act_def and 'scale' in self.activity.canonical_data['definition']:
                 trans = {x['id']: x['description']
                          for x in incoming_act_def['scale']}
                 for s in self.activity.canonical_data['definition']['scale']:
                     if s['id'] in trans:
                         s['description'] = dict(
-                            s['description'].items() + trans[s['id']].items())
+                            list(s['description'].items()) + list(trans[s['id']].items()))
             if 'choices' in incoming_act_def and 'choices' in self.activity.canonical_data['definition']:
                 trans = {x['id']: x['description']
                          for x in incoming_act_def['choices']}
                 for c in self.activity.canonical_data['definition']['choices']:
                     if c['id'] in trans:
                         c['description'] = dict(
-                            c['description'].items() + trans[c['id']].items())
+                            list(c['description'].items()) + list(trans[c['id']].items()))
             if 'steps' in incoming_act_def and 'steps' in self.activity.canonical_data['definition']:
                 trans = {x['id']: x['description']
                          for x in incoming_act_def['steps']}
                 for s in self.activity.canonical_data['definition']['steps']:
                     if s['id'] in trans:
                         s['description'] = dict(
-                            s['description'].items() + trans[s['id']].items())
+                            list(s['description'].items()) + list(trans[s['id']].items()))
             if 'source' in incoming_act_def and 'source' in self.activity.canonical_data['definition']:
                 trans = {x['id']: x['description']
                          for x in incoming_act_def['source']}
                 for s in self.activity.canonical_data['definition']['source']:
                     if s['id'] in trans:
                         s['description'] = dict(
-                            s['description'].items() + trans[s['id']].items())
+                            list(s['description'].items()) + list(trans[s['id']].items()))
             if 'target' in incoming_act_def and 'target' in self.activity.canonical_data['definition']:
                 trans = {x['id']: x['description']
                          for x in incoming_act_def['target']}
                 for s in self.activity.canonical_data['definition']['target']:
                     if s['id'] in trans:
                         s['description'] = dict(
-                            s['description'].items() + trans[s['id']].items())
+                            list(s['description'].items()) + list(trans[s['id']].items()))
 
     def populate(self, data):
         activity_id = data['id']

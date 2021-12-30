@@ -7,7 +7,7 @@ from django.http import HttpResponse, HttpResponseNotFound, JsonResponse
 from django.conf import settings
 from django.utils.timezone import utc
 
-from retrieve_statement import complex_get, parse_more_request
+from .retrieve_statement import complex_get, parse_more_request
 from ..exceptions import NotFound
 from ..models import Statement, Agent, Activity
 from ..managers.ActivityProfileManager import ActivityProfileManager
@@ -28,14 +28,14 @@ def process_statement(stmt, auth, payload_sha2s):
 
     # Convert context activities to list if dict
     if 'context' in stmt and 'contextActivities' in stmt['context']:
-        for k, v in stmt['context']['contextActivities'].items():
+        for k, v in list(stmt['context']['contextActivities'].items()):
             if isinstance(v, dict):
                 stmt['context']['contextActivities'][k] = [v]
 
     # Convert context activities to list if dict (for substatements)
     if 'objectType' in stmt['object'] and stmt['object']['objectType'] == 'SubStatement':
         if 'context' in stmt['object'] and 'contextActivities' in stmt['object']['context']:
-            for k, v in stmt['object']['context']['contextActivities'].items():
+            for k, v in list(stmt['object']['context']['contextActivities'].items()):
                 if isinstance(v, dict):
                     stmt['object']['context']['contextActivities'][k] = [v]
 
@@ -185,7 +185,7 @@ def statements_more_get(req_dict):
         resp = HttpResponse(stmt_result, content_type=mime_type, status=200)
     # If not, just dump the stmt_result
     else:
-        if isinstance(stmt_result, basestring):
+        if isinstance(stmt_result, str):
             resp = HttpResponse(
                 stmt_result, content_type=mime_type, status=200)
         else:

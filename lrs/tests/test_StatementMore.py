@@ -19,7 +19,7 @@ class StatementMoreTests(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        print "\n%s" % __name__
+        print("\n%s" % __name__)
         super(StatementMoreTests, cls).setUpClass()
 
     def setUp(self):
@@ -378,7 +378,7 @@ class StatementMoreTests(TestCase):
             file_path = os.path.join(attach_folder_path, the_file)
             try:
                 os.unlink(file_path)
-            except Exception, e:
+            except Exception as e:
                 raise e
 
     def test_unknown_more_id_url(self):

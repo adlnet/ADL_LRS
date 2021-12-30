@@ -1,5 +1,5 @@
 import re
-import urllib
+import urllib.request, urllib.parse, urllib.error
 from django.conf import settings
 from django.http import HttpResponse
 
@@ -23,7 +23,7 @@ class XAPIVersionHeader(object):
             content_type = None
 
         if content_type and content_type.startswith("application/x-www-form-urlencoded"):
-            bdy_parts = urllib.unquote_plus(request.body).split('&')
+            bdy_parts = urllib.parse.unquote_plus(request.body).split('&')
             for part in bdy_parts:
                 v = re.search(
                     'X[-_]Experience[-_]API[-_]Version=(?P<num>.*)', part)

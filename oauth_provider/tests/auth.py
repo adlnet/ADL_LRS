@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 import time
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import re
-from urlparse import parse_qs, urlparse
+from urllib.parse import parse_qs, urlparse
 from django.test import TestCase, Client
 
 import oauth2
@@ -60,24 +60,24 @@ class BaseOAuthTestCase(TestCase):
         elif method == METHOD_URL_QUERY:
             response = self.c.get("/oauth/request_token/", parameters)
         elif method == METHOD_POST_REQUEST_BODY:
-            body = urllib.urlencode(parameters)
+            body = urllib.parse.urlencode(parameters)
             response = self.c.post(
                 "/oauth/request_token/", body, content_type="application/x-www-form-urlencoded")
         else:
             raise NotImplementedError
 
         if response.status_code != 200:
-            print response
+            print(response)
         self.assertEqual(response.status_code, 200)
 
-        self.assert_(
+        self.assertTrue(
             re.match(r'oauth_token_secret=[^&]+&oauth_token=[^&]+&oauth_callback_confirmed=true', response.content
                      ))
 
         token = self.request_token = list(Token.objects.all())[-1]
-        self.assert_(token.key in response.content)
-        self.assert_(token.secret in response.content)
-        self.assert_(not self.request_token.is_approved)
+        self.assertTrue(token.key in response.content)
+        self.assertTrue(token.secret in response.content)
+        self.assertTrue(not self.request_token.is_approved)
         return response
 
     def _authorize_and_access_token_using_form(self, method=METHOD_URL_QUERY):
@@ -130,7 +130,7 @@ class BaseOAuthTestCase(TestCase):
         elif method == METHOD_URL_QUERY:
             response = self.c.get("/oauth/access_token/", parameters)
         elif method == METHOD_POST_REQUEST_BODY:
-            body = urllib.urlencode(parameters)
+            body = urllib.parse.urlencode(parameters)
             response = self.c.post(
                 "/oauth/access_token/", body, content_type="application/x-www-form-urlencoded")
         else:

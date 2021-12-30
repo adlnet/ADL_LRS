@@ -12,3 +12,4 @@ federated-analytics.js
 *.conf
 lrs/celery.py
 *.ini
+.vscode/

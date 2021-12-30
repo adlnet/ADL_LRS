@@ -1,7 +1,7 @@
 from oauth_provider.compat import url
 from django.views.generic import RedirectView
 
-from views import request_token, user_authorization, access_token
+from .views import request_token, user_authorization, access_token
 
 # LRS CHANGE - ADDED SPEC COMPLIANT ENDPOINTS
 urlpatterns = [

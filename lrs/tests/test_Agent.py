@@ -14,7 +14,7 @@ class AgentTests(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        print "\n%s" % __name__
+        print("\n%s" % __name__)
         super(AgentTests, cls).setUpClass()
 
     def setUp(self):
