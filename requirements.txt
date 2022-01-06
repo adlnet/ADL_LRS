@@ -1,7 +1,7 @@
 Django==1.11.29
 amqp==1.4.9
 bencode==1.0
-celery==3.1.19
+celery==5.2.2
 django-cors-headers==1.1.0
 django-jsonify==0.3.0
 importlib==1.0.3
