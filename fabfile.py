@@ -4,10 +4,11 @@ from fabric.api import local
 
 
 def setup_env():
-    INSTALL_STEPS = [
-        'virtualenv ../env;. ../env/bin/activate;pip install -r requirements.txt;deactivate']
-    for step in INSTALL_STEPS:
-        local(step)
+    # INSTALL_STEPS = [
+    #     'virtualenv ../env;. ../env/bin/activate;pip install -r requirements.txt;deactivate']
+    # for step in INSTALL_STEPS:
+    #     local(step)
+    pass
 
 
 def setup_lrs():
@@ -17,15 +18,15 @@ def setup_lrs():
     activity_state = 'activity_state'
     statement_attachments = 'attachment_payloads'
 
-    # Add env packages and project to the path
-    cwd = os.path.dirname(os.path.abspath(__file__))
+    # # Add env packages and project to the path
+    # cwd = os.path.dirname(os.path.abspath(__file__))
 
     if cwd not in sys.path:
         sys.path.append(cwd)
 
-    env_dir = os.path.join(cwd, '../env/lib/python2.7/site-packages')
-    if env_dir not in sys.path:
-        sys.path.append(env_dir)
+    # env_dir = os.path.join(cwd, '../env/lib/python2.7/site-packages')
+    # if env_dir not in sys.path:
+    #     sys.path.append(env_dir)
 
     log_dir = os.path.join(cwd, '../logs')
     if not os.path.exists(log_dir):

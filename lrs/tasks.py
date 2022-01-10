@@ -64,7 +64,7 @@ def check_statement_hooks(stmt_ids):
                         str(config['endpoint']), resp.status_code, resp.content))
                 except Exception as e:
                     celery_logger.exception("Could not send statements to hook %s: %s" % (
-                        str(config['endpoint']), e.message))
+                        str(config['endpoint']), str(e)))
     except SoftTimeLimitExceeded:
         celery_logger.exception("Statement hook task timed out")
 
@@ -218,7 +218,7 @@ def get_activity_metadata(act_id):
             except Exception as e:
                 valid_url_data = False
                 celery_logger.exception(
-                    "Activity Metadata Retrieval Error: " + e.message)
+                    "Activity Metadata Retrieval Error: " + str(e))
 
             if valid_url_data:
                 update_activity_definition(fake_activity)

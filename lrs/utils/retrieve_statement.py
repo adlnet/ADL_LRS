@@ -1,4 +1,4 @@
-import bencode
+import bcoding
 import hashlib
 import json
 import uuid
@@ -8,7 +8,7 @@ from itertools import chain
 from django.core.cache import cache
 from django.conf import settings
 from django.core.paginator import Paginator
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.db.models import Q
 
 from . import convert_to_datetime_object
@@ -174,7 +174,7 @@ def create_cache_key():
     hash_data.append(str(uuid.uuid4()))
 
     # Create cache key from hashed data (always 32 digits)
-    key = hashlib.md5(bencode.bencode(hash_data)).hexdigest()
+    key = hashlib.md5(bcoding.bencode(hash_data)).hexdigest()
     return key
 
 

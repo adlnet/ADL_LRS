@@ -221,7 +221,6 @@ def statements_get(req_dict):
 
     return resp
 
-
 def build_response(stmt_result, single=False):
     sha2s = []
     mime_type = "application/json"
@@ -237,37 +236,52 @@ def build_response(stmt_result, single=False):
             if st_atts:
                 for att in st_atts.all():
                     if att.payload:
-                        sha2s.append(
-                            (att.canonical_data['sha2'], att.payload, att.canonical_data['contentType']))
+
+                        sha2s.append({
+                            "sha2": att.canonical_data['sha2'], 
+                            "payload": att.payload,
+                            "contentType": att.canonical_data['contentType']
+                        })
+
+                        # sha2s.append(
+                            # (att.canonical_data['sha2'], att.payload, att.canonical_data['contentType']))
+    
     # Create multipart message and attach json message to it
     string_list = []
     line_feed = "\r\n"
     boundary = "======ADL_LRS======"
-    string_list.append(line_feed + "--" + boundary + line_feed)
-    string_list.append(
-        "Content-Type:application/json" + line_feed + line_feed)
+
+    string_list.append(f"{line_feed}--{boundary + line_feed}")
+    string_list.append(f"Content-Type:application/json{line_feed + line_feed}")
+    
     if isinstance(stmt_result, dict):
-        string_list.append(
-            json.dumps(stmt_result, sort_keys=False) + line_feed)
+        result_str = json.dumps(stmt_result, sort_keys=False)
+        string_list.append(result_str + line_feed)
     else:
         string_list.append(stmt_result + line_feed)
 
     for sha2 in sha2s:
-        string_list.append("--" + boundary + line_feed)
-        string_list.append("Content-Type:%s" % str(sha2[2]) + line_feed)
-        string_list.append("Content-Transfer-Encoding:binary" + line_feed)
-        string_list.append("X-Experience-API-Hash:" +
-                           str(sha2[0]) + line_feed + line_feed)
+        string_list.append(f"--" + boundary + line_feed)
+        string_list.append(f"Content-Type:{str(sha2['contentType']) + line_feed}")
+        string_list.append(f"Content-Transfer-Encoding:binary{line_feed}")
+        string_list.append(f"X-Experience-API-Hash:{str(sha2['sha2']) + line_feed + line_feed}")
 
         chunks = []
         try:
             # Default chunk size is 64kb
-            for chunk in sha2[1].chunks():
+            for chunk in sha2["payload"].chunks():
+                if isinstance(chunk, bytes):
+                    chunk = chunk.decode("utf-8")
+                
                 chunks.append(chunk)
+        
         except OSError:
-            raise NotFound(2, "No such file or directory",
-                          sha2[1].name.split("/")[1])
-        string_list.append("".join(chunks) + line_feed)
+            raise NotFound(2, f"No such file or directory {chunks} {sha2}", sha2["payload"].name)
+        
+        try:
+            string_list.append("".join(chunks) + line_feed)
+        except TypeError as te:
+            raise TypeError(f"{type(string_list)} vs. {type(chunks)} \n\n{te}")
 
     string_list.append("--" + boundary + "--\r\n")
     mime_type = 'multipart/mixed; boundary=' + '"%s"' % boundary

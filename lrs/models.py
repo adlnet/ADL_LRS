@@ -296,7 +296,7 @@ class Activity(models.Model):
     activity_id = models.CharField(
         max_length=MAX_URL_LENGTH, db_index=True, unique=True)
     canonical_data = JSONField(default=dict)
-    authority = models.ForeignKey(Agent, null=True)
+    authority = models.ForeignKey(Agent, null=True, on_delete=models.CASCADE)
 
     def return_activity_with_lang_format(self, lang=None, ids_only=False):
         if ids_only:
@@ -678,7 +678,7 @@ class StatementAttachment(models.Model):
     payload = models.FileField(max_length=150, upload_to=STATEMENT_ATTACHMENT_UPLOAD_TO,
                                storage=AttachmentFileSystemStorage(), null=True)
     statement = models.ForeignKey(
-        Statement, related_name="stmt_attachments", null=True)
+        Statement, related_name="stmt_attachments", null=True, on_delete=models.CASCADE)
 
     def return_attachment_with_lang(self, lang=None):
         ret = OrderedDict(self.canonical_data)
@@ -701,7 +701,7 @@ class ActivityState(models.Model):
     registration_id = models.CharField(max_length=40, db_index=True)
     content_type = models.CharField(max_length=255, blank=True)
     etag = models.CharField(max_length=50, blank=True)
-    agent = models.ForeignKey(Agent)
+    agent = models.ForeignKey(Agent, on_delete=models.CASCADE)
     json_state = JSONField(default=dict)
     state = models.FileField(upload_to=ACTIVITY_STATE_UPLOAD_TO, null=True)
 
@@ -711,6 +711,10 @@ class ActivityState(models.Model):
         super(ActivityState, self).delete(*args, **kwargs)
 
     def save(self, *args, **kwargs):
+
+        if isinstance(self.json_state, bytes):
+            self.json_state = self.json_state.decode("utf-8")
+
         if self.json_state and isinstance(self.json_state, str):
             try:
                 json.loads(self.json_state)
@@ -718,9 +722,9 @@ class ActivityState(models.Model):
                 try:
                     ast.literal_eval(self.json_state)
                 except Exception:
-                    raise BadRequest("The Activity State body is not valid JSON")
-        elif self.json_state and not isinstance(self.json_state, str):
-            raise BadRequest("The Activity State body is not valid JSON")
+                    raise BadRequest(f"[1] The Activity State body is not valid JSON, instead got:: {type(self.json_state)}:: {self.json_state}")
+        elif self.json_state and isinstance(self.json_state, bytes):
+            raise BadRequest(f"[2] The Activity State body is not valid JSON, instead got:: {type(self.json_state)}:: {self.json_state}")
         super(ActivityState, self).save(*args, **kwargs)
 
 class ActivityProfile(models.Model):
@@ -739,6 +743,10 @@ class ActivityProfile(models.Model):
         super(ActivityProfile, self).delete(*args, **kwargs)
 
     def save(self, *args, **kwargs):
+
+        if isinstance(self.json_profile, bytes):
+            self.json_profile = self.json_profile.decode("utf-8")
+
         if self.json_profile and isinstance(self.json_profile, str):
             try:
                 json.loads(self.json_profile)
@@ -746,9 +754,9 @@ class ActivityProfile(models.Model):
                 try:
                     ast.literal_eval(self.json_profile)
                 except Exception:
-                    raise BadRequest("The Activity Profile body is not valid JSON")
+                    raise BadRequest(f"[1] The Activity Profile body is not valid JSON, instead got:: {type(self.json_profile)}:: {self.json_profile}")
         elif self.json_profile and not isinstance(self.json_profile, str):
-            raise BadRequest("The Activity Profile body is not valid JSON")
+            raise BadRequest(f"[2] The Activity Profile body is not valid JSON, instead got:: {type(self.json_profile)}:: {self.json_profile}")
         super(ActivityProfile, self).save(*args, **kwargs)
 
 class AgentProfile(models.Model):
@@ -757,7 +765,7 @@ class AgentProfile(models.Model):
         auto_now_add=True, blank=True, db_index=True)
     content_type = models.CharField(max_length=255, blank=True)
     etag = models.CharField(max_length=50, blank=True)
-    agent = models.ForeignKey(Agent, db_index=True)
+    agent = models.ForeignKey(Agent, db_index=True, on_delete=models.CASCADE)
     json_profile = JSONField(default=dict)
     profile = models.FileField(upload_to=AGENT_PROFILE_UPLOAD_TO, null=True)
 
@@ -767,6 +775,10 @@ class AgentProfile(models.Model):
         super(AgentProfile, self).delete(*args, **kwargs)
 
     def save(self, *args, **kwargs):
+
+        if isinstance(self.json_profile, bytes):
+            self.json_profile = self.json_profile.decode("utf-8")
+            
         if self.json_profile and isinstance(self.json_profile, str):
             try:
                 json.loads(self.json_profile)
@@ -774,7 +786,7 @@ class AgentProfile(models.Model):
                 try:
                     ast.literal_eval(self.json_profile)
                 except Exception:
-                    raise BadRequest("The Agent Profile body is not valid JSON")
+                    raise BadRequest(f"[1] The Agent Profile body is not valid JSON, instead got:: {type(self.json_profile)}:: {self.json_profile}")
         elif self.json_profile and not isinstance(self.json_profile, str):
-            raise BadRequest("The Agent Profile body is not valid JSON")
+            raise BadRequest(f"[2] The Agent Profile body is not valid JSON, instead got:: {type(self.json_profile)}:: {self.json_profile}")
         super(AgentProfile, self).save(*args, **kwargs)  

@@ -55,7 +55,7 @@ class Consumer(models.Model):
     rsa_signature = models.BooleanField(default=False)
 
     status = models.SmallIntegerField(choices=CONSUMER_STATES, default=PENDING)
-    user = models.ForeignKey(AUTH_USER_MODEL, null=True, blank=True)
+    user = models.ForeignKey(AUTH_USER_MODEL, null=True, blank=True, on_delete=models.CASCADE)
     xauth_allowed = models.BooleanField("Allow xAuth", default=False)
 
     def __unicode__(self):
@@ -92,8 +92,8 @@ class Token(models.Model):
     is_approved = models.BooleanField(default=False)
 
     user = models.ForeignKey(AUTH_USER_MODEL, null=True,
-                             blank=True, related_name='tokens')
-    consumer = models.ForeignKey(Consumer)
+                             blank=True, related_name='tokens', on_delete=models.CASCADE)
+    consumer = models.ForeignKey(Consumer, on_delete=models.CASCADE)
     # LRS CHANGE - LRS SCOPES AREN'T RESOURCES
     # scope = models.ForeignKey(Scope, null=True, blank=True)
     scope = models.CharField(

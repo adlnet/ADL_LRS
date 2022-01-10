@@ -52,9 +52,9 @@ class StatementValidator():
         # whatever is calling validator)
         if data:
             try:
-                if isinstance(data, str):
+                if isinstance(data, bytes):
                     try:
-                        data = str(data)
+                        data = data.decode("utf-8")
                     except Exception:
                         self.return_error("There is an encoding problem with the statement")
                     else:
@@ -63,7 +63,7 @@ class StatementValidator():
             except SyntaxError as se:
                 self.return_error(str(se))
             except Exception as e:
-                self.return_error(e.message)
+                self.return_error(str(e))
 
     def validate(self):
         # If list, validate each stmt inside
@@ -75,7 +75,7 @@ class StatementValidator():
             self.validate_statement(self.data)
             return "Statement is valid"
         else:
-            self.return_error("There are no statements to validate")
+            self.return_error(f"There are no statements to validate, payload: {self.data}")
 
     def return_error(self, err_msg):
         raise ParamError(err_msg)
@@ -205,7 +205,7 @@ class StatementValidator():
 
             except Exception as e:
                 self.return_error(
-                    "Timestamp error - There was an error while parsing the date from %s -- Error: %s" % (timestamp, e.message))
+                    "Timestamp error - There was an error while parsing the date from %s -- Error: %s" % (timestamp, str(e)))
 
         # If stored included, make sure a valid date can be parsed from it
         if 'stored' in stmt:
@@ -214,7 +214,7 @@ class StatementValidator():
                 parse_datetime(stored)
             except Exception as e:
                 self.return_error(
-                    "Stored error - There was an error while parsing the date from %s -- Error: %s" % (stored, e.message))
+                    "Stored error - There was an error while parsing the date from %s -- Error: %s" % (stored, str(e)))
 
         # Validate the actor and verb
         self.validate_agent(stmt['actor'], 'actor')
@@ -346,7 +346,7 @@ class StatementValidator():
             # IFI
             if 'name' in agent and not isinstance(agent['name'], str):
                 self.return_error(
-                    "If name is given in Agent, it must be a string")
+                    f"If name is given in Agent, it must be a string -- got {type(agent['name'])}{agent['name']}")
             self.validate_ifi(ifis[0], agent[ifis[0]])
         else:
             # If group, if name given, ensure name is string
@@ -654,7 +654,7 @@ class StatementValidator():
 
             except Exception as e:
                 self.return_error(
-                    "Timestamp error - There was an error while parsing the date from %s -- Error: %s" % (timestamp, e.message))
+                    "Timestamp error - There was an error while parsing the date from %s -- Error: %s" % (timestamp, str(e)))
 
         # Can't next substmts in other substmts - if not supplied it is an
         # Activity

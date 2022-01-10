@@ -10,8 +10,7 @@ SETTINGS_DIR = dirname(abspath(__file__))
 PROJECT_ROOT = dirname(dirname(SETTINGS_DIR))
 
 config = RawConfigParser()
-config.read(SETTINGS_DIR+'/settings.ini')
-
+config.read(SETTINGS_DIR, 'settings.ini'))
 
 # If you want to debug
 DEBUG = config.getboolean('debug', 'DEBUG')
@@ -25,7 +24,6 @@ EMAIL_PORT = config.getint('email', 'EMAIL_PORT')
 EMAIL_HOST_USER = config.get('email', 'EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = config.get('email', 'EMAIL_HOST_PASSWORD')
 EMAIL_USE_SSL = config.getboolean('email', 'EMAIL_USE_SSL')
-
 
 DATABASES = {
     'default': {
@@ -239,7 +237,7 @@ CORS_EXPOSE_HEADERS = (
     'Accept-Language'
 )
 
-MIDDLEWARE_CLASSES = (
+MIDDLEWARE = (
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',

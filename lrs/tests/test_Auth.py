@@ -6,7 +6,7 @@ import hashlib
 from datetime import datetime, timedelta
 
 from django.test import TestCase
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils.timezone import utc
 from django.conf import settings
 

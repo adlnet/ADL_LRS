@@ -4,7 +4,7 @@ import urllib.request, urllib.parse, urllib.error
 import base64
 
 from django.test import TestCase
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.conf import settings
 
 from ..models import Verb, Agent, Activity, Statement, SubStatement

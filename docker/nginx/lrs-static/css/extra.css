@@ -1,0 +1,80 @@
+/*Styles stmt and act state divs*/
+.datacontainer {
+	border: solid;
+	border-color: #6FBEF3;
+	border-width: 2px;
+	border-radius: 15px 50px;
+	padding: 20px; 
+	width: 100%;
+	overflow: hidden;
+	white-space: normal;
+}
+
+/*Delete stmt button*/
+.deletestmts {
+	background-color:#ff0000;
+}
+
+/*Styles form errors and messages*/
+.formerror{
+	color: #FF0000;
+	font-weight: bold;
+}
+
+.formvalid{
+	color: #008000;
+	font-weight: bold;
+}
+
+.errorlist{
+	color: #FF0000;
+	font-weight: bold;
+}
+/*End form styles*/
+
+/*Styles oauth 1 and 2 app divs*/
+.appdiv{
+	border-bottom: solid;
+	border-color: #6FBEF3;
+	border-width: 1px;	
+}
+
+/*Statement styles*/
+.actor{
+	color: #aa80ff;
+}
+
+.verb{
+	color: #cc0000;
+}
+
+.object{
+	color: #b38600;
+}
+/*End statement styles*/
+
+/*Activity State styles*/
+.as-actid{
+	color: #cc0000;
+}
+
+.as-stid{
+	color: #aa80ff;
+}
+/*Activity State styles*/
+
+/*Colors all links light blue - no other decoration*/
+a {color:#6FBEF3; background: #FFFFFF;}
+a:visited { text-decoration: none; }
+a:hover { text-decoration: none; }
+a:focus { text-decoration: none; }
+a:hover, a:active { text-decoration: none; }
+
+.hide-info{
+	visibility:hidden;	
+}
+
+.user-agent{
+	font-size:13px;
+	color:#007F00;
+}

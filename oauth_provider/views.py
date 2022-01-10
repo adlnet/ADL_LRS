@@ -9,7 +9,7 @@ from django.contrib.sites.shortcuts import get_current_site
 from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseRedirect, HttpResponseForbidden
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.translation import ugettext as _
-from django.core.urlresolvers import get_callable
+from django.urls import get_callable
 from django.shortcuts import render
 from django.template import RequestContext
 

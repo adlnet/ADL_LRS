@@ -1,0 +1,89 @@
+version: '3'
+services:
+
+  # Database for LRS statements
+  postgres:
+    restart: always
+    build: 
+      context: postgres
+    ports:
+      - "127.0.0.1:5432:5432"
+    container_name: docker_postgres
+    environment: 
+      POSTGRES_DB: lrs
+      POSTGRES_USER: lrs_owner
+      POSTGRES_PASSWORD: lrs_password
+    # Persist this data between sessions
+    volumes:
+      - ./postgres/data:/var/lib/postgresql/data
+    networks:
+      - public
+
+  # Required for activity metadata
+  amqp:
+    restart: always
+    image: "rabbitmq:3-management"
+    hostname: "rabbit1"
+    environment:
+      RABBITMQ_ERLANG_COOKIE: "SWQOKODSQALRPCLNMEQG"
+      RABBITMQ_DEFAULT_USER: "rabbitmq"
+      RABBITMQ_DEFAULT_PASS: "rabbitmq"
+      RABBITMQ_DEFAULT_VHOST: "/"
+    container_name: docker_rabbit
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+    networks:
+      - public
+  
+  # The actual ADL LRS service run through uWSGI
+  lrs:
+    restart: always
+    build: 
+      context: lrs
+    ports:
+      - "127.0.0.1:8000:8000"
+    container_name: docker_lrs
+    links:
+      - postgres
+      - amqp
+    networks:
+      - public
+  
+  # nginx proxy used to handle LRS traffic
+  nginx:
+    restart: always
+    build: 
+      context: nginx
+      args:
+        HOSTNAME: "${HOSTNAME}"
+    ports:
+      - "80:80"
+      - "443:443"
+    container_name: docker_nginx
+    volumes:
+      - ./nginx/letsencrypt:/usr/share/nginx/html
+      - ./certbot/etc:/usr/share/keys
+    links:
+      - lrs
+    networks:
+      - public
+
+  # Certbot for SSL automation
+  #
+  certbot:
+    container_name: 'docker_certbot'
+    image: certbot/certbot
+    volumes:
+      - ./keys:/var/lib/letsencrypt
+      - ./nginx/letsencrypt:/data/letsencrypt
+      - ./certbot/etc:/etc/letsencrypt
+      - ./certbot/log:/var/log/letsencrypt
+    depends_on:
+      - nginx
+    networks:
+      - public
+
+networks:
+  public: 
+    driver: bridge

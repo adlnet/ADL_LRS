@@ -7,7 +7,7 @@ IF_NONE_MATCH = "HTTP_IF_NONE_MATCH"
 
 
 def create_tag(resource):
-    return hashlib.sha1(resource).hexdigest()
+    return hashlib.sha1(resource.encode("utf-8")).hexdigest()
 
 
 def get_etag_info(headers):
@@ -76,7 +76,7 @@ class MissingEtagInfo(BadRequest):
         self.message = msg
 
     def __str__(self):
-        return repr(self.message)
+        return repr(self)
 
 class MissingEtagInfoExists(Conflict):
 
@@ -84,7 +84,7 @@ class MissingEtagInfoExists(Conflict):
         self.message = msg
 
     def __str__(self):
-        return repr(self.message)
+        return repr(self)
 
 class EtagPreconditionFail(PreconditionFail):
 
@@ -92,4 +92,4 @@ class EtagPreconditionFail(PreconditionFail):
         self.message = msg
 
     def __str__(self):
-        return repr(self.message)
+        return repr(self)

@@ -48,7 +48,7 @@ def send_oauth_error(scheme, domain, err=None):
     if isinstance(err, str):
         response = HttpResponse(err, content_type="text/plain")
     else:
-        response = HttpResponse(err.message.encode(
+        response = HttpResponse(str(err).encode(
             'utf-8'), content_type="text/plain")
 
     response.status_code = 401

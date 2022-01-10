@@ -35,7 +35,7 @@ def convert_to_datetime_object(timestr):
         date_object = parse_datetime(timestr)
     except ValueError as e:
         raise ParamError(
-            "There was an error while parsing the date from %s -- Error: %s" % (timestr, e.message))
+            "There was an error while parsing the date from %s -- Error: %s" % (timestr, str(e)))
     return date_object
 
 
@@ -44,15 +44,22 @@ def convert_to_datatype(incoming_data):
     # GET data will be non JSON string-have to try literal_eval
     if isinstance(incoming_data, dict) or isinstance(incoming_data, list):
         return incoming_data
+    
     # could get weird values that json lib will parse
     # ex: '"this is not json but would not fail"'
-    if incoming_data.startswith('"'):
-        incoming_data = incoming_data[1:-1]
+
+    # The move to newer Django and Python3 means that the request body
+    # will be passed as bytes and may need decoding here
+    # if isinstance(incoming_data, bytes)
+    decoded = incoming_data if isinstance(incoming_data, str) else incoming_data.decode("utf-8")
+    
+    if decoded.startswith('"'):
+        decoded = decoded[1:-1]
     try:
-        data = json.loads(incoming_data)
+        data = json.loads(decoded)
     except Exception:
         try:
-            data = ast.literal_eval(incoming_data)
+            data = ast.literal_eval(decoded)
         except Exception as e:
             raise e
     return data
@@ -60,14 +67,17 @@ def convert_to_datatype(incoming_data):
 
 def convert_post_body_to_dict(incoming_data):
     encoded = True
-    pairs = [s2 for s1 in incoming_data.split('&') for s2 in s1.split(';')]
+
+    decoded = incoming_data if isinstance(incoming_data, str) else incoming_data.decode("utf-8")
+
+    pairs = [s2 for s1 in decoded.split('&') for s2 in s1.split(';')]
     for p in pairs:
         # this is checked for cors requests
         if p.startswith('content='):
             if p == urllib.parse.unquote_plus(p):
                 encoded = False
             break
-    qs = urllib.parse.parse_qsl(incoming_data)
+    qs = urllib.parse.parse_qsl(decoded)
     return dict((k, v) for k, v in qs), encoded
 
 

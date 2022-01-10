@@ -14,7 +14,7 @@ from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
 
 from django.test import TestCase
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils.timezone import utc
 from django.conf import settings
 
