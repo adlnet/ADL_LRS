@@ -1,0 +1,40 @@
+[database]
+NAME: lrs
+USER: lrs_owner
+PASSWORD: lrs_password
+HOST: postgres
+PORT: 5432
+
+[email]
+EMAIL_BACKEND: django.core.mail.backends.smtp.EmailBackend
+EMAIL_HOST: smtp.gmail.com
+EMAIL_PORT: 587
+EMAIL_HOST_USER: <gmail-username>
+EMAIL_HOST_PASSWORD: <gmail-password>
+EMAIL_USE_SSL: True
+
+[debug]
+DEBUG: True
+
+[auth]
+ALLOW_EMPTY_HTTP_AUTH: False
+OAUTH_ENABLED: True
+
+[hooks]
+USE_HOOKS: False
+
+[preferences]
+SERVER_STMT_LIMIT: 100
+STMTS_PER_PAGE: 10
+TIME_ZONE: America/New_York
+LANGUAGE_CODE: en-US
+
+[secrets]
+SECRET_KEY: _secret_
+
+[ampq]
+USERNAME: rabbitmq
+PASSWORD: rabbitmq
+HOST: amqp
+PORT: 5672
+VHOST: /

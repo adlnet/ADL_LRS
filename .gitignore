@@ -10,7 +10,9 @@ runtests
 500.html
 media/
 federated-analytics.js
-*.conf
 lrs/celery.py
-*.ini
 .vscode/
+
+docker/lrs/settings.ini
+adl_lrs/settings.ini
+# *.conf
