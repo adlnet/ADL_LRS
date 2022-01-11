@@ -73,12 +73,10 @@ def setup_lrs():
     local('./manage.py migrate')
     local('./manage.py makemigrations adl_lrs lrs oauth_provider')
     local('./manage.py migrate')
-    # createsuperuser has been moved to its own function for convenience
+    # createsuperuser has been moved to a script to ignore the default values
 
-def create_admin():
-    from django.contrib.auth import get_user_model
-    User = get_user_model()
-    User.objects.create_superuser(ADMIN_USERNAME, ADMIN_EMAILADR, ADMIN_PASSWORD)
+# def create_admin():
+#     local('./manage.py createsuperuser')
 
 def test_lrs():
     local('./manage.py test lrs.tests')
