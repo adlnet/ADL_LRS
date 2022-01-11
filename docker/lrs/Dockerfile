@@ -2,14 +2,15 @@ FROM python:3.9
 
 ENV UWSGI_PIP_VERSION 2.0.20
 
+RUN mkdir /opt/lrs /opt/lrs/logs
+
 # Install our reqs
 RUN apt-get update && \
 	apt-get install -y && \
 	pip3 install fabric3 virtualenv
 
-
-RUN mkdir /opt/lrs /opt/lrs/logs
-COPY ./ADL_LRS /opt/lrs/ADL_LRS
+RUN echo "Cloning LRS Branch" && \
+	git clone https://github.com/adlnet/ADL_LRS -b python3 /opt/lrs/ADL_LRS		
 
 WORKDIR /opt/lrs/ADL_LRS
 
