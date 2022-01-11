@@ -27,7 +27,9 @@ As this project is centered around Docker, there's very little setup required on
 
 ### TL;DR
 1. `git clone https://github.com/adlnet/ADL_LRS`
-1. `cd adl-lrs-docker`
+1. `cd docker`
+1. `cp .env.example .env`
+1. `cp lrs/settings.ini.example lrs/settings.ini`
 1. `sudo ./install-reqs.sh`
 1. `sudo ./init-ssl.sh localhost` (🌟 NEW)
 1. `sudo ./rebuild.sh`
