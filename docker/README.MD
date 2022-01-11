@@ -27,15 +27,22 @@ As this project is centered around Docker, there's very little setup required on
 
 ### TL;DR
 1. `git clone https://github.com/adlnet/ADL_LRS`
-1. `cd docker`
+1. `cd ADL_LRS/docker`
 1. `cp .env.example .env`
 1. `cp lrs/settings.ini.example lrs/settings.ini`
 1. `sudo ./install-reqs.sh`
 1. `sudo ./init-ssl.sh localhost` (🌟 NEW)
 1. `sudo ./rebuild.sh`
 
-(optional) 
-- `sudo ./create-admin.sh` (once the LRS is available, **which can take awhile!**)
+As an alternative to the last script, you can just do the direct Docker Compose command (`-d` for Detatched and `--build` to create containers):
+```
+sudo docker-compose up -d --build
+```
+
+Finally, to create an admin user (onyl use once the LRS is available, **which can take awhile!**)
+```
+sudo ./create-admin.sh
+```
 
 ### A bit more detail
 Once you clone the repository, move to its root folder.  Here, you'll install all the necessary prerequisites and then run the actual build itself.  
