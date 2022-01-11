@@ -10,7 +10,7 @@ SETTINGS_DIR = dirname(abspath(__file__))
 PROJECT_ROOT = dirname(dirname(SETTINGS_DIR))
 
 config = RawConfigParser()
-config.read(SETTINGS_DIR, 'settings.ini'))
+config.read(SETTINGS_DIR+'/settings.ini')
 
 # If you want to debug
 DEBUG = config.getboolean('debug', 'DEBUG')
