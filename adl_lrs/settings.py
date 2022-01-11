@@ -68,6 +68,9 @@ USE_TZ = True
 # Set this to True if you would like to utilize the webhooks functionality
 USE_HOOKS = config.getboolean('hooks', 'USE_HOOKS')
 
+# Newer versions of Django recommend specifying a default auto field here
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
+
 # Absolute filesystem path to the directory that will hold user-uploaded files.
 # Example: "/home/media/media.lawrence.com/media/"
 MEDIA_ROOT = path.join(PROJECT_ROOT, 'media')

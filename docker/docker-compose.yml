@@ -15,7 +15,7 @@ services:
       POSTGRES_PASSWORD: lrs_password
     # Persist this data between sessions
     volumes:
-      - ./postgres/data:/var/lib/postgresql/data
+      - ./data/postgres:/var/lib/postgresql/data
     networks:
       - public
 
@@ -62,8 +62,8 @@ services:
       - "443:443"
     container_name: docker_nginx
     volumes:
-      - ./nginx/letsencrypt:/usr/share/nginx/html
-      - ./certbot/etc:/usr/share/keys
+      - ./data/nginx/letsencrypt:/usr/share/nginx/html
+      - ./data/certbot/etc:/usr/share/keys
     links:
       - lrs
     networks:
@@ -75,10 +75,10 @@ services:
     container_name: 'docker_certbot'
     image: certbot/certbot
     volumes:
-      - ./keys:/var/lib/letsencrypt
-      - ./nginx/letsencrypt:/data/letsencrypt
-      - ./certbot/etc:/etc/letsencrypt
-      - ./certbot/log:/var/log/letsencrypt
+      - ./data/keys:/var/lib/letsencrypt
+      - ./data/nginx/letsencrypt:/data/letsencrypt
+      - ./data/certbot/etc:/etc/letsencrypt
+      - ./data/certbot/log:/var/log/letsencrypt
     depends_on:
       - nginx
     networks:

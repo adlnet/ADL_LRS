@@ -6,7 +6,8 @@ from collections import OrderedDict
 from django.db import models, IntegrityError
 from django.db.models.signals import post_save
 from django.contrib.auth.models import User
-from django.contrib.postgres.fields import JSONField
+# from django.contrib.postgres.fields import JSONField
+from django.db.models import JSONField
 from django.core.files.storage import FileSystemStorage
 from django.utils import timezone
 
@@ -352,8 +353,8 @@ class SubStatement(models.Model):
     actor = models.ForeignKey(
         Agent, related_name="actor_of_substatement", null=True, on_delete=models.SET_NULL)
     verb = models.ForeignKey(Verb, null=True, on_delete=models.SET_NULL)
-    result_success = models.NullBooleanField()
-    result_completion = models.NullBooleanField()
+    result_success = models.BooleanField(null=True)
+    result_completion = models.BooleanField(null=True)
     result_response = models.TextField(blank=True)
     result_duration = models.CharField(max_length=40, blank=True)
     result_score_scaled = models.FloatField(blank=True, null=True)
@@ -505,8 +506,8 @@ class Statement(models.Model):
     actor = models.ForeignKey(Agent, related_name="actor_statement", db_index=True, null=True,
                               on_delete=models.SET_NULL)
     verb = models.ForeignKey(Verb, null=True, on_delete=models.SET_NULL)
-    result_success = models.NullBooleanField()
-    result_completion = models.NullBooleanField()
+    result_success = models.BooleanField(null=True)
+    result_completion = models.BooleanField(null=True)
     result_response = models.TextField(blank=True)
     result_duration = models.CharField(max_length=40, blank=True)
     result_score_scaled = models.FloatField(blank=True, null=True)
@@ -518,7 +519,7 @@ class Statement(models.Model):
     timestamp = models.DateTimeField(db_index=True)
     authority = models.ForeignKey(Agent, blank=True, null=True, related_name="authority_statement", db_index=True,
                                   on_delete=models.SET_NULL)
-    voided = models.NullBooleanField(default=False)
+    voided = models.BooleanField(null=True, default=False)
     context_registration = models.CharField(
         max_length=40, blank=True, db_index=True)
     context_instructor = models.ForeignKey(Agent, blank=True, null=True, on_delete=models.SET_NULL,
