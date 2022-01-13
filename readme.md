@@ -1,5 +1,7 @@
 ﻿# ADL LRS
 
+## This version of the ADL LRS has been deprecated, as it is based on Python 2. A Python 3 branch is available.
+
 #### Installation tested on <b>Ubuntu 14.04</b> machine with Python 2.7.6, <b>Ubuntu 14.04+</b> is recommended. Updated to be compliant with the 1.0.3 xAPI spec.
 
 This version is stable, but only intended to support a small amount of users as a proof of concept. While it uses programming best practices, it is not designed to take the place of an enterprise system.
