@@ -1,39 +1,36 @@
 ﻿# ADL LRS
 
-#### Installation tested on <b>Ubuntu 14.04</b> machine with Python 2.7.6, <b>Ubuntu 14.04+</b> is recommended. Updated to be compliant with the 1.0.3 xAPI spec.
+#### Installation tested on <b>Ubuntu 16.04</b> machine with Python 3.9. <b>Ubuntu 16.04+</b> is recommended. Updated to be compliant with the 1.0.3 xAPI spec.
 
 This version is stable, but only intended to support a small amount of users as a proof of concept. While it uses programming best practices, it is not designed to take the place of an enterprise system.
 
-## Installation
+## Installation (with Docker)
 
-**Install Postgres** (The apt-get upgrade is only needed if you're running Ubuntu 14. If running 15+ you can skip to installing postgresql. Also version 9.4+ is needed)
+We recommend installing the ADL LRS via Docker. You can find detailed instructions on this process [here](https://github.com/adlnet/ADL_LRS/blob/python3/docker/README.MD).
 
-    admin:~$ wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
-    admin:~$ sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg main" >> /etc/apt/sources.list.d/postgresql.list'
-    admin:~$ sudo apt-get update
-    admin:~$ sudo apt-get upgrade
+## Installation (without Docker)
 
-    admin:~$ sudo apt-get install postgresql-9.4 postgresql-server-dev-9.4 postgresql-contrib-9.4
-    (can install 9.5 if on Ubuntu 16)
+**Install Postgres**
+
+    admin:~$ sudo apt-get install postgresql-9.5 postgresql-server-dev-9.5 postgresql-contrib-9.5
 
     admin:~$ sudo -u postgres createuser -P -s <db_owner_name>
     Enter password for new role: <db_owner_password>
     Enter it again: <db_owner_password>
     admin:~$ sudo -u postgres psql template1
     template1=# CREATE DATABASE lrs OWNER <db_owner_name>;
-    template1=# \q (exits shell)
+    template1=# \q (Exits shell.)
 
 
 **Install Prerequisites**
 
-    admin:~$ sudo apt-get install git fabric python-setuptools python-dev\
+    admin:~$ sudo apt-get install git fabric python-setuptools python3-dev\
         libxml2-dev libxslt1-dev gcc
-    admin:~$ sudo easy_install pip
-    admin:~$ sudo pip install virtualenv
+    admin:~$ sudo pip3 install fabric3 virtualenv
 
 **Clone the LRS repository**
 
-    admin:~$ cd <wherever you want to put the LRS>
+    admin:~$ cd <Wherever you want to put the LRS>
     admin:~$ git clone https://github.com/adlnet/ADL_LRS.git
     admin:~$ cd ADL_LRS/
 
@@ -72,18 +69,18 @@ given in *settings.py* are the same as those you created.
 
 ## Starting
 
-While still in the ADL_LRS directory, run
+While still in the ADL_LRS directory, run:
 
     (env)dbowner:ADL_LRS$ ./manage.py runserver
 
-This starts a lightweight development web server on the local machine. By default, the server runs on port 8000 on the IP address 127.0.0.1. You can pass in an IP address and port number explicitly. This will serve your static files without setting up Nginx but must NOT be used for production purposes. Press `CTRL + C` to stop the server
+This starts a lightweight development web server on the local machine. By default, the server runs on port 8000 on the IP address 127.0.0.1. You can pass in an IP address and port number explicitly. This will serve your static files without setting up Nginx but must NOT be used for production purposes. Press `CTRL + C` to stop the server.
 
 
 Set your site domain
 
-  Visit the admin section of your website (/admin). Click Sites and you'll see the only entry is 'example.com' (The key for this in the DB is 1 and it maps back to the SITE_ID value in settings). Change the domain and name to the domain you're going to use. If running locally it could be localhost:8000, or if production could be lrs.adlnet.gov (DON'T include the scheme here). Once again this does not change the domain it's running on...you want to set that up first then change this value to your domain name.
+  Visit the admin section of your website (/admin). Click Sites and you'll see the only entry is 'example.com'. (The key for this in the DB is 1 and it maps back to the SITE_ID value in settings). Change the domain and name to the domain you're going to use. If running locally it could be localhost:8000, or if production could be lrs.adlnet.gov (DON'T include the scheme here). Again, this does not change the domain it's running on; you want to set that up first then change this value to your domain name.
 
-Whenever you want to exit the virtual environment, just type `deactivate`
+Whenever you want to exit the virtual environment, just type `deactivate`.
 
 For other ways to start and run the LRS, please visit our Wiki.
 
