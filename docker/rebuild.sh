@@ -4,5 +4,5 @@
 docker-compose stop
 
 # Rebuild the containers and detatch from this terminal
-docker-compose build
-docker-compose up -d
+docker-compose build --no-cache
+docker-compose up -d 
