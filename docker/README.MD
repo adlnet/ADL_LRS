@@ -73,3 +73,11 @@ This will retrieve a certificate and restart your nginx container to use it.
 ```
 sudo ./init-ssl.sh <your-domain-name>
 ```
+
+### Connecting to a different database
+To configure the database used by your LRS, refer to the `/lrs/settings.ini` file and change the values under the `[database]` header accordingly.
+
+### Setting up SMTP
+With Google as your email provider, simply refer to the `/lrs/settings.ini` file and change the values under the `[email]` header.
+
+With Office 365 or other email providers, additional setup is required.
