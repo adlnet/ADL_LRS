@@ -1,12 +1,12 @@
 import json
-import urllib
+import urllib.request, urllib.parse, urllib.error
 
 from django.contrib.auth import logout, login, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib.sites.shortcuts import get_current_site
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.db import transaction, IntegrityError
 from django.http import HttpResponse, HttpResponseRedirect, HttpResponseBadRequest, HttpResponseNotFound, JsonResponse
 from django.shortcuts import render
@@ -57,7 +57,7 @@ def stmt_validator(request):
                 valid = validator.validate()
             except ParamError as e:
                 clean_data = form.cleaned_data['jsondata']
-                return render(request, 'validator.html', {"form": form, "error_message": e.message, "clean_data": clean_data})
+                return render(request, 'validator.html', {"form": form, "error_message": str(e), "clean_data": clean_data})
             else:
                 clean_data = json.dumps(
                     validator.data, indent=4, sort_keys=True)
@@ -89,7 +89,7 @@ def register(request):
                 return render(request, 'register.html', {"form": form, "error_message": "User %s already exists." % name})
 
             # If a user is already logged in, log them out
-            if request.user.is_authenticated():
+            if request.user.is_authenticated:
                 logout(request)
 
             new_user = authenticate(username=name, password=pword)
@@ -210,8 +210,8 @@ def my_activity_state(request):
             return HttpResponseBadRequest("More than one agent returned with email")
 
         try:
-            state = ActivityState.objects.get(activity_id=urllib.unquote(
-                act_id), agent=ag, state_id=urllib.unquote(state_id))
+            state = ActivityState.objects.get(activity_id=urllib.parse.unquote(
+                act_id), agent=ag, state_id=urllib.parse.unquote(state_id))
         except ActivityState.DoesNotExist:
             return HttpResponseNotFound("Activity state does not exist")
         except ActivityState.MultipleObjectsReturned:
@@ -262,7 +262,7 @@ def my_hooks(request, template="my_hooks.html"):
                 error_message = "Hook with name %s already exists" % name
                 valid_message = False
             except Exception as e:
-                error_message = e.message
+                error_message = str(e)
                 valid_message = False
             else:
                 valid_message = "Successfully created hook"
@@ -365,10 +365,12 @@ def hooks(request):
     if not request.META['lrs-user'][0]:
         return HttpResponse(request.META['lrs-user'][1], status=401)
     user = request.META['lrs-user'][1]
+
     if request.method == "POST":
-        if request.body:
+        body_str = request.body.decode("utf-8") if isinstance(request.body, bytes) else request.body
+        if body_str:
             try:
-                body = convert_to_datatype(request.body)
+                body = convert_to_datatype(body_str)
             except Exception:
                 return HttpResponseBadRequest("Could not parse request body")
             try:
@@ -377,7 +379,7 @@ def hooks(request):
             except IntegrityError as e:
                 return HttpResponseBadRequest("Something went wrong: %s already exists" % body['name'])
             except Exception as e:
-                return HttpResponseBadRequest("Something went wrong: %s" % e.message)
+                return HttpResponseBadRequest("Something went wrong: %s" % str(e))
             else:
                 hook_location = "%s://%s%s/%s" % ('https' if request.is_secure() else 'http',
                     get_current_site(request).domain, reverse('adl_lrs.views.my_hooks'), hook.hook_id)

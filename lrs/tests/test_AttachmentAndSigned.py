@@ -1,7 +1,7 @@
 import json
 import base64
 import uuid
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import hashlib
 import os
 from jose import jws
@@ -14,7 +14,7 @@ from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
 
 from django.test import TestCase
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils.timezone import utc
 from django.conf import settings
 
@@ -27,7 +27,7 @@ class AttachmentAndSignedTests(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        print "\n%s" % __name__
+        print("\n%s" % __name__)
         super(AttachmentAndSignedTests, cls).setUpClass()
 
     def setUp(self):
@@ -61,7 +61,7 @@ class AttachmentAndSignedTests(TestCase):
             file_path = os.path.join(attach_folder_path, the_file)
             try:
                 os.unlink(file_path)
-            except Exception, e:
+            except Exception as e:
                 raise e
 
     def test_multipart(self):
@@ -77,7 +77,7 @@ class AttachmentAndSignedTests(TestCase):
              "sha2": ""}]}
 
         message = MIMEMultipart(boundary="myboundary")
-        txt = u"howdy.. this is a text attachment"
+        txt = "howdy.. this is a text attachment"
         txtsha = hashlib.sha256(txt).hexdigest()
         stmt['attachments'][0]["sha2"] = str(txtsha)
 
@@ -119,11 +119,11 @@ class AttachmentAndSignedTests(TestCase):
         ]
 
         message = MIMEMultipart(boundary="myboundary")
-        txt = u"howdy.. this is a text attachment"
+        txt = "howdy.. this is a text attachment"
         txtsha = hashlib.sha256(txt).hexdigest()
         stmt[0]['attachments'][0]["sha2"] = str(txtsha)
 
-        txt2 = u"This is second attachment."
+        txt2 = "This is second attachment."
         txtsha2 = hashlib.sha256(txt2).hexdigest()
         stmt[1]['attachments'][0]['sha2'] = str(txtsha2)
         stmtdata = MIMEApplication(json.dumps(
@@ -184,7 +184,7 @@ class AttachmentAndSignedTests(TestCase):
         ]
 
         message = MIMEMultipart(boundary="myboundary")
-        txt = u"howdy.. this is a text attachment"
+        txt = "howdy.. this is a text attachment"
         txtsha = hashlib.sha256(txt).hexdigest()
         stmt[0]['attachments'][0]["sha2"] = str(txtsha)
         stmt[1]['attachments'][0]['sha2'] = str(txtsha)
@@ -241,7 +241,7 @@ class AttachmentAndSignedTests(TestCase):
                  "fileUrl": "http://my/file/url"}]}]
 
         message = MIMEMultipart(boundary="myboundary")
-        txt = u"howdy.. this is a text attachment"
+        txt = "howdy.. this is a text attachment"
         txtsha = hashlib.sha256(txt).hexdigest()
         stmt[0]['attachments'][0]["sha2"] = str(txtsha)
         stmtdata = MIMEApplication(json.dumps(
@@ -309,19 +309,19 @@ class AttachmentAndSignedTests(TestCase):
                 ]
 
         message = MIMEMultipart(boundary="myboundary")
-        txt11 = u"This is a text attachment11"
+        txt11 = "This is a text attachment11"
         txtsha11 = hashlib.sha256(txt11).hexdigest()
         stmt[0]['attachments'][0]["sha2"] = str(txtsha11)
 
-        txt12 = u"This is a text attachment12"
+        txt12 = "This is a text attachment12"
         txtsha12 = hashlib.sha256(txt12).hexdigest()
         stmt[0]['attachments'][1]['sha2'] = str(txtsha12)
 
-        txt21 = u"This is a text attachment21"
+        txt21 = "This is a text attachment21"
         txtsha21 = hashlib.sha256(txt21).hexdigest()
         stmt[1]['attachments'][0]['sha2'] = str(txtsha21)
 
-        txt22 = u"This is a text attachment22"
+        txt22 = "This is a text attachment22"
         txtsha22 = hashlib.sha256(txt22).hexdigest()
         stmt[1]['attachments'][1]['sha2'] = str(txtsha22)
 
@@ -394,9 +394,9 @@ class AttachmentAndSignedTests(TestCase):
              "sha2": ""}]}
 
         message = MIMEMultipart(boundary="myboundary")
-        txt = u"howdy.. this is a text attachment"
+        txt = "howdy.. this is a text attachment"
         txtsha = hashlib.sha256(txt).hexdigest()
-        wrongtxt = u"blahblahblah this is wrong"
+        wrongtxt = "blahblahblah this is wrong"
         wrongsha = hashlib.sha256(wrongtxt).hexdigest()
         stmt['attachments'][0]["sha2"] = str(wrongsha)
 
@@ -434,11 +434,11 @@ class AttachmentAndSignedTests(TestCase):
              "sha2": ""}]}
 
         message = MIMEMultipart(boundary="myboundary")
-        txt = u"howdy.. this is a text attachment"
+        txt = "howdy.. this is a text attachment"
         txtsha = hashlib.sha256(txt).hexdigest()
         stmt['attachments'][0]["sha2"] = str(txtsha)
 
-        txt2 = u"this is second attachment"
+        txt2 = "this is second attachment"
         txtsha2 = hashlib.sha256(txt2).hexdigest()
         stmt['attachments'][1]["sha2"] = str(txtsha2)
 
@@ -479,13 +479,13 @@ class AttachmentAndSignedTests(TestCase):
              "sha2": ""}]}
 
         message = MIMEMultipart(boundary="myboundary")
-        txt = u"howdy.. this is a text attachment"
+        txt = "howdy.. this is a text attachment"
         txtsha = hashlib.sha256(txt).hexdigest()
         stmt['attachments'][0]["sha2"] = str(txtsha)
 
-        txt2 = u"this is second attachment"
+        txt2 = "this is second attachment"
         txtsha2 = hashlib.sha256(txt2).hexdigest()
-        wrongtxt = u"this is some wrong text"
+        wrongtxt = "this is some wrong text"
         wrongsha2 = hashlib.sha256(wrongtxt).hexdigest()
         stmt['attachments'][1]["sha2"] = str(wrongsha2)
 
@@ -689,7 +689,7 @@ class AttachmentAndSignedTests(TestCase):
                      "sha2": ""}]}
 
         message = MIMEMultipart(boundary="myboundary")
-        txt = u"howdy.. this is a text attachment"
+        txt = "howdy.. this is a text attachment"
         txtsha = hashlib.sha256(txt).hexdigest()
         stmt['attachments'][0]["sha2"] = str(txtsha)
 
@@ -704,7 +704,7 @@ class AttachmentAndSignedTests(TestCase):
         message.attach(textdata)
 
         param = {"statementId": stmt_id}
-        path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'), urllib.parse.urlencode(param))
         r = self.client.put(path, message.as_string(), content_type='multipart/mixed; boundary="myboundary"', Authorization=self.auth,
                             X_Experience_API_Version=settings.XAPI_VERSION)
 
@@ -725,9 +725,9 @@ class AttachmentAndSignedTests(TestCase):
                      "sha2": ""}]}
 
         message = MIMEMultipart(boundary="myboundary")
-        txt = u"howdy.. this is a text attachment"
+        txt = "howdy.. this is a text attachment"
         txtsha = hashlib.sha256(txt).hexdigest()
-        wrongtxt = u"blahblahblah this is wrong"
+        wrongtxt = "blahblahblah this is wrong"
         wrongsha = hashlib.sha256(wrongtxt).hexdigest()
         stmt['attachments'][0]["sha2"] = str(wrongsha)
 
@@ -741,7 +741,7 @@ class AttachmentAndSignedTests(TestCase):
         message.attach(textdata)
 
         param = {"statementId": stmt_id}
-        path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'), urllib.parse.urlencode(param))
         r = self.client.put(path, message.as_string(), content_type='multipart/mixed; boundary="myboundary"',
                             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
 
@@ -769,11 +769,11 @@ class AttachmentAndSignedTests(TestCase):
                      "sha2": ""}]}
 
         message = MIMEMultipart(boundary="myboundary")
-        txt = u"howdy.. this is a text attachment"
+        txt = "howdy.. this is a text attachment"
         txtsha = hashlib.sha256(txt).hexdigest()
         stmt['attachments'][0]["sha2"] = str(txtsha)
 
-        txt2 = u"this is second attachment"
+        txt2 = "this is second attachment"
         txtsha2 = hashlib.sha256(txt2).hexdigest()
         stmt['attachments'][1]["sha2"] = str(txtsha2)
 
@@ -792,7 +792,7 @@ class AttachmentAndSignedTests(TestCase):
         message.attach(textdata2)
 
         param = {"statementId": stmt_id}
-        path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'), urllib.parse.urlencode(param))
         r = self.client.put(path, message.as_string(), content_type='multipart/mixed; boundary="myboundary"', Authorization=self.auth,
                             X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 204)
@@ -818,13 +818,13 @@ class AttachmentAndSignedTests(TestCase):
                      "sha2": ""}]}
 
         message = MIMEMultipart(boundary="myboundary")
-        txt = u"howdy.. this is a text attachment"
+        txt = "howdy.. this is a text attachment"
         txtsha = hashlib.sha256(txt).hexdigest()
         stmt['attachments'][0]["sha2"] = str(txtsha)
 
-        txt2 = u"this is second attachment"
+        txt2 = "this is second attachment"
         txtsha2 = hashlib.sha256(txt2).hexdigest()
-        wrongtxt = u"this is some wrong text"
+        wrongtxt = "this is some wrong text"
         wrongsha2 = hashlib.sha256(wrongtxt).hexdigest()
         stmt['attachments'][1]["sha2"] = str(wrongsha2)
 
@@ -843,7 +843,7 @@ class AttachmentAndSignedTests(TestCase):
         message.attach(textdata2)
 
         param = {"statementId": stmt_id}
-        path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'), urllib.parse.urlencode(param))
         r = self.client.put(path, message.as_string(), content_type='multipart/mixed; boundary="myboundary"',
                             Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(r.status_code, 400)
@@ -865,7 +865,7 @@ class AttachmentAndSignedTests(TestCase):
                      "fileUrl": "http://my/file/url"}]}
 
         param = {"statementId": stmt_id}
-        path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'), urllib.parse.urlencode(param))
         response = self.client.put(path, json.dumps(stmt), content_type="application/json",
                                    Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 204)
@@ -879,7 +879,7 @@ class AttachmentAndSignedTests(TestCase):
                 "attachments": "wrong"}
 
         param = {"statementId": stmt_id}
-        path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'), urllib.parse.urlencode(param))
         response = self.client.put(path, json.dumps(stmt), content_type="application/json",
                                    Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 400)
@@ -900,7 +900,7 @@ class AttachmentAndSignedTests(TestCase):
                      "length": 27}]}
 
         param = {"statementId": stmt_id}
-        path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'), urllib.parse.urlencode(param))
         response = self.client.put(path, json.dumps(stmt), content_type="application/json",
                                    Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 400)
@@ -921,7 +921,7 @@ class AttachmentAndSignedTests(TestCase):
                      "fileUrl": "blah"}]}
 
         param = {"statementId": stmt_id}
-        path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'), urllib.parse.urlencode(param))
         response = self.client.put(path, json.dumps(stmt), content_type="application/json",
                                    Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 400)
@@ -952,7 +952,7 @@ class AttachmentAndSignedTests(TestCase):
                      "fileUrl": ""}]}
 
         param = {"statementId": stmt_id}
-        path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'), urllib.parse.urlencode(param))
         response = self.client.put(path, json.dumps(stmt), content_type="application/json",
                                    Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 400)
@@ -996,7 +996,7 @@ class AttachmentAndSignedTests(TestCase):
         self.assertEqual(r.status_code, 200)
 
         param = {"attachments": True}
-        path = "%s?%s" % (reverse('lrs:statements'), urllib.urlencode(param))
+        path = "%s?%s" % (reverse('lrs:statements'), urllib.parse.urlencode(param))
         r = self.client.get(
             path, X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)
         self.assertEqual(r.status_code, 200)
@@ -1132,7 +1132,7 @@ class AttachmentAndSignedTests(TestCase):
              "sha2": ""}]}
 
         message = MIMEMultipart(boundary="myboundary")
-        txt = u"howdy.. this is a text attachment"
+        txt = "howdy.. this is a text attachment"
         txtsha = hashlib.sha256(txt).hexdigest()
         stmt['attachments'][0]["sha2"] = str(txtsha)
 
@@ -1187,7 +1187,7 @@ class AttachmentAndSignedTests(TestCase):
              ]}
 
         message = MIMEMultipart(boundary="myboundary")
-        txt = u"howdy.. this is a text attachment"
+        txt = "howdy.. this is a text attachment"
         txtsha = hashlib.sha256(txt).hexdigest()
         stmt['attachments'][0]["sha2"] = str(txtsha)
 

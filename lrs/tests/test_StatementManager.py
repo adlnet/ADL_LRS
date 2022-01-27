@@ -1,10 +1,10 @@
 import uuid
 import json
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import base64
 
 from django.test import TestCase
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.conf import settings
 
 from ..models import Verb, Agent, Activity, Statement, SubStatement
@@ -17,7 +17,7 @@ class StatementManagerTests(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        print "\n%s" % __name__
+        print("\n%s" % __name__)
         super(StatementManagerTests, cls).setUpClass()
 
     def setUp(self):
@@ -56,7 +56,7 @@ class StatementManagerTests(TestCase):
                            "verb": {"id": "http://example.com/verbs/created", "display": {"en-US": "created", "en-GB": "made"}},
                            "object": {"id": "http://example.adlnet.gov/tincan/example/simplestatement"}})
         path = "%s?%s" % (reverse('lrs:statements'),
-                          urllib.urlencode({"statementId": st_id}))
+                          urllib.parse.urlencode({"statementId": st_id}))
         response = self.client.put(path, stmt, content_type="application/json",
                                    Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 204)
@@ -67,7 +67,7 @@ class StatementManagerTests(TestCase):
         actor = Agent.objects.get(id=stmt.actor.id)
         lang_maps = verb.canonical_data['display']
 
-        for k, v in lang_maps.iteritems():
+        for k, v in lang_maps.items():
             if k == 'en-GB':
                 self.assertEqual(v, 'made')
             elif k == 'en-US':
@@ -89,7 +89,7 @@ class StatementManagerTests(TestCase):
                            "verb": {"id": "http://example.com/verbs/created", "display": {"en-US": "created"}},
                            "object": {"id": "http://example.adlnet.gov/tincan/example/simplestatement"}})
         path = "%s?%s" % (reverse('lrs:statements'),
-                          urllib.urlencode({"statementId": st_id}))
+                          urllib.parse.urlencode({"statementId": st_id}))
         response = self.client.put(path, stmt, content_type="application/json",
                                    Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 204)
@@ -192,8 +192,8 @@ class StatementManagerTests(TestCase):
 
         activity = Activity.objects.get(id=stmt.object_activity.id)
         actor = Agent.objects.get(id=stmt.actor.id)
-        extKeys = stmt.result_extensions.keys()
-        extVals = stmt.result_extensions.values()
+        extKeys = list(stmt.result_extensions.keys())
+        extVals = list(stmt.result_extensions.values())
 
         self.assertEqual(stmt.verb.verb_id, "verb:verb/url")
         self.assertEqual(stmt.object_activity.id, activity.id)
@@ -331,8 +331,8 @@ class StatementManagerTests(TestCase):
 
         activity = Activity.objects.get(id=stmt.object_activity.id)
         actor = Agent.objects.get(id=stmt.actor.id)
-        extKeys = stmt.result_extensions.keys()
-        extVals = stmt.result_extensions.values()
+        extKeys = list(stmt.result_extensions.keys())
+        extVals = list(stmt.result_extensions.values())
 
         self.assertEqual(stmt.verb.verb_id, "verb:verb/url")
         self.assertEqual(stmt.object_activity.id, activity.id)
@@ -480,8 +480,8 @@ class StatementManagerTests(TestCase):
         stmt = Statement.objects.get(statement_id=stmt_id)
 
         activity = Activity.objects.get(id=stmt.object_activity.id)
-        extKeys = stmt.context_extensions.keys()
-        extVals = stmt.context_extensions.values()
+        extKeys = list(stmt.context_extensions.keys())
+        extVals = list(stmt.context_extensions.values())
         context_activities_other = stmt.context_ca_other.all()
 
         self.assertEqual(stmt.verb.verb_id, "verb:verb/url")
@@ -508,7 +508,7 @@ class StatementManagerTests(TestCase):
         existing_stmt = json.dumps({'actor': {'objectType': 'Agent', 'mbox': 'mailto:s@s.com'},
                                     'verb': {"id": "verb:verb/url/outer"}, "object": {'id': 'act:activityy16'}})
         path = "%s?%s" % (reverse('lrs:statements'),
-                          urllib.urlencode({"statementId": stmt_guid}))
+                          urllib.parse.urlencode({"statementId": stmt_guid}))
         response = self.client.put(path, existing_stmt, content_type="application/json",
                                    Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 204)
@@ -554,7 +554,7 @@ class StatementManagerTests(TestCase):
         existing_stmt = json.dumps({'actor': {'objectType': 'Agent',
                                               'mbox': 'mailto:s@s.com'}, 'verb': {"id": "verb:verb/url/outer"}, "object": {'id': 'act:activityy16'}})
         path = "%s?%s" % (reverse('lrs:statements'),
-                          urllib.urlencode({"statementId": stmt_guid}))
+                          urllib.parse.urlencode({"statementId": stmt_guid}))
         response = self.client.put(path, existing_stmt, content_type="application/json",
                                    Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 204)
@@ -596,7 +596,7 @@ class StatementManagerTests(TestCase):
         existing_stmt = json.dumps({'actor': {'objectType': 'Agent',
                                               'mbox': 'mailto:s@s.com'}, 'verb': {"id": "verb:verb/url/outer"}, "object": {'id': 'act:activityy16'}})
         path = "%s?%s" % (reverse('lrs:statements'),
-                          urllib.urlencode({"statementId": stmt_guid}))
+                          urllib.parse.urlencode({"statementId": stmt_guid}))
         response = self.client.put(path, existing_stmt, content_type="application/json",
                                    Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 204)
@@ -638,7 +638,7 @@ class StatementManagerTests(TestCase):
         existing_stmt = json.dumps({'actor': {'objectType': 'Agent',
                                               'mbox': 'mailto:mailto:s@s.com'}, 'verb': {"id": "verb:verb/url/outer"}, "object": {'id': 'act:activityy16'}})
         path = "%s?%s" % (reverse('lrs:statements'),
-                          urllib.urlencode({"statementId": stmt_guid}))
+                          urllib.parse.urlencode({"statementId": stmt_guid}))
         response = self.client.put(path, existing_stmt, content_type="application/json",
                                    Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(response.status_code, 204)

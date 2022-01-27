@@ -33,7 +33,7 @@ def main():
     elif len(sys.argv) == 1:
         test_case = ''
     else:
-        print(usage())
+        print((usage()))
         sys.exit(1)
 
     patch_for_test_db_setup()

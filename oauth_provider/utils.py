@@ -1,8 +1,8 @@
 import ast
 import binascii
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import oauth2 as oauth
-from urlparse import urlparse, urlunparse
+from urllib.parse import urlparse, urlunparse
 
 from Crypto.PublicKey import RSA
 from Crypto.Util.number import long_to_bytes, bytes_to_long
@@ -12,7 +12,7 @@ from django.conf import settings
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.contrib.auth import authenticate
 
-from consts import MAX_URL_LENGTH
+from .consts import MAX_URL_LENGTH
 
 OAUTH_REALM_KEY_NAME = getattr(settings, 'OAUTH_REALM_KEY_NAME', '')
 OAUTH_SIGNATURE_METHODS = getattr(settings, 'OAUTH_SIGNATURE_METHODS', [
@@ -45,16 +45,16 @@ def send_oauth_error(scheme, domain, err=None):
     # send a 401 error
     # LRS CHANGE - BE ABLE TO SEND PLAIN TEXT ERROR MESSAGES
     # LRS CHANGE - DECIDE IF 400 OR 401 ERROR
-    if isinstance(err, basestring):
+    if isinstance(err, str):
         response = HttpResponse(err, content_type="text/plain")
     else:
-        response = HttpResponse(err.message.encode(
+        response = HttpResponse(str(err).encode(
             'utf-8'), content_type="text/plain")
 
     response.status_code = 401
     # return the authenticate header
     header = oauth.build_authenticate_header(realm='%s://%s/xAPI' % (scheme, domain))
-    for k, v in header.iteritems():
+    for k, v in header.items():
         response[k] = v
     return response
 
@@ -79,10 +79,10 @@ def get_oauth_request(request):
     if request.method == "POST" and request.META.get('CONTENT_TYPE') == "application/x-www-form-urlencoded":
         # LRS CHANGE - DJANGO TEST CLIENT SENDS PARAMS FUNKY-NEED SPECIAL CASE
         if request.META.get('SERVER_NAME') == 'testserver':
-            parameters = ast.literal_eval(request.POST.items()[0][0])
+            parameters = ast.literal_eval(list(request.POST.items())[0][0])
         else:
             parameters = dict((k, v.encode('utf-8'))
-                              for (k, v) in request.POST.iteritems())
+                              for (k, v) in request.POST.items())
 
     absolute_uri = request.build_absolute_uri(request.path)
 
@@ -101,7 +101,7 @@ def get_oauth_request(request):
 
 def verify_oauth_request(request, oauth_request, consumer, token=None):
     """ Helper function to verify requests. """
-    from store import store
+    from .store import store
 
     # Check nonce
     if not store.check_nonce(request, oauth_request, oauth_request['oauth_nonce'], oauth_request['oauth_timestamp']):
@@ -182,7 +182,7 @@ def check_valid_callback(callback):
 
 def escape(s):
     """Escape a URL including any /."""
-    return urllib.quote(s, safe='~')
+    return urllib.parse.quote(s, safe='~')
 
 
 class SignatureMethod_RSA_SHA1(oauth.SignatureMethod):

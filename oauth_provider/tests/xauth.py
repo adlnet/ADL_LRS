@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import time
-import urllib
-from urlparse import parse_qs
+import urllib.request, urllib.parse, urllib.error
+from urllib.parse import parse_qs
 
 from oauth_provider.tests.auth import BaseOAuthTestCase, METHOD_URL_QUERY, METHOD_AUTHORIZATION_HEADER, METHOD_POST_REQUEST_BODY
 
@@ -35,7 +35,7 @@ class XAuthTestCase(BaseOAuthTestCase):
         elif method == METHOD_URL_QUERY:
             response = self.c.get("/oauth/access_token/", parameters)
         elif method == METHOD_POST_REQUEST_BODY:
-            body = urllib.urlencode(parameters)
+            body = urllib.parse.urlencode(parameters)
             response = self.c.post(
                 "/oauth/access_token/", body, content_type="application/x-www-form-urlencoded")
         else:

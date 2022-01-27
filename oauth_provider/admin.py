@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 # from models import Scope, Consumer, Token
-from models import Consumer, Token
+from .models import Consumer, Token
 
 # LRS CHANGE - REMOVED SCOPE REFERENCES
 # class ScopeAdmin(admin.ModelAdmin):

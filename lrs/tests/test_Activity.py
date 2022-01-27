@@ -3,7 +3,7 @@ import json
 
 from django.test import TestCase
 from django.conf import settings
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from adl_lrs.views import register
 
@@ -12,7 +12,7 @@ class ActivityTests(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        print "\n%s" % __name__
+        print("\n%s" % __name__)
         super(ActivityTests, cls).setUpClass()
 
     def setUp(self):
@@ -103,8 +103,8 @@ class ActivityTests(TestCase):
         self.assertIn('type:course', rsp)
         self.assertIn('other', rsp)
         rsp_dict = json.loads(rsp)
-        self.assertEqual(len(rsp_dict['definition']['name'].keys()), 2)
-        self.assertEqual(len(rsp_dict['definition']['description'].keys()), 2)
+        self.assertEqual(len(list(rsp_dict['definition']['name'].keys())), 2)
+        self.assertEqual(len(list(rsp_dict['definition']['description'].keys())), 2)
 
     def test_get_ext(self):
         st = json.dumps({"actor": {"objectType": "Agent", "mbox": "mailto:tom@adlnet.gov"},
@@ -165,15 +165,15 @@ class ActivityTests(TestCase):
         self.assertIn('golf', rsp)
         self.assertIn('tetris', rsp)
         rsp_dict = json.loads(rsp)
-        self.assertEqual(len(rsp_dict['definition']['description'].keys()), 2)
-        self.assertEqual(len(rsp_dict['definition']['choices'][
-                         0]['description'].keys()), 2)
-        self.assertEqual(len(rsp_dict['definition']['choices'][
-                         1]['description'].keys()), 1)
-        self.assertEqual(len(rsp_dict['definition']['choices'][
-                         2]['description'].keys()), 1)
-        self.assertEqual(len(rsp_dict['definition']['choices'][
-                         3]['description'].keys()), 1)
+        self.assertEqual(len(list(rsp_dict['definition']['description'].keys())), 2)
+        self.assertEqual(len(list(rsp_dict['definition']['choices'][
+                         0]['description'].keys())), 2)
+        self.assertEqual(len(list(rsp_dict['definition']['choices'][
+                         1]['description'].keys())), 1)
+        self.assertEqual(len(list(rsp_dict['definition']['choices'][
+                         2]['description'].keys())), 1)
+        self.assertEqual(len(list(rsp_dict['definition']['choices'][
+                         3]['description'].keys())), 1)
 
     def test_get_crp_true_false(self):
         st = json.dumps({"actor": {"objectType": "Agent", "mbox": "mailto:tom@adlnet.gov"},
@@ -353,14 +353,14 @@ class ActivityTests(TestCase):
         self.assertIn('Net pong matches won', rsp)
         self.assertIn('Strokes over par in disc golf at Liberty', rsp)
         rsp_dict = json.loads(rsp)
-        self.assertEqual(len(rsp_dict['definition']['name'].keys()), 2)
-        self.assertEqual(len(rsp_dict['definition']['description'].keys()), 1)
-        self.assertEqual(len(rsp_dict['definition']['steps'][
-                         0]['description'].keys()), 1)
-        self.assertEqual(len(rsp_dict['definition']['steps'][
-                         1]['description'].keys()), 1)
-        self.assertEqual(len(rsp_dict['definition']['steps'][
-                         2]['description'].keys()), 2)
+        self.assertEqual(len(list(rsp_dict['definition']['name'].keys())), 2)
+        self.assertEqual(len(list(rsp_dict['definition']['description'].keys())), 1)
+        self.assertEqual(len(list(rsp_dict['definition']['steps'][
+                         0]['description'].keys())), 1)
+        self.assertEqual(len(list(rsp_dict['definition']['steps'][
+                         1]['description'].keys())), 1)
+        self.assertEqual(len(list(rsp_dict['definition']['steps'][
+                         2]['description'].keys())), 2)
 
     def test_get_crp_sequencing(self):
         st = json.dumps({"actor": {"objectType": "Agent", "mbox": "mailto:tom@adlnet.gov"},

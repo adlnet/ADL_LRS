@@ -10,11 +10,11 @@ from jose import jws
 
 from django.contrib.sites.shortcuts import get_current_site
 from django.core.cache import caches
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.http import QueryDict
 
 from . import convert_to_datatype, convert_post_body_to_dict
-from etag import get_etag_info
+from .etag import get_etag_info
 from ..exceptions import OauthUnauthorized, OauthBadRequest, ParamError, BadRequest
 
 from oauth_provider.utils import get_oauth_request, require_params
@@ -31,11 +31,14 @@ def parse(request, more_id=None):
     r_dict['headers'] = get_headers(request.META)
     # Traditional authorization should be passed in headers
     r_dict['auth'] = {}
+
+    body_str = request.body.decode("utf-8") if isinstance(request.body, bytes) else request.body
+
     if 'Authorization' in r_dict['headers']:
         # OAuth will always be dict, not http auth. Set required fields for
         # oauth module and type for authentication module
         set_normal_authorization(request, r_dict)
-    elif 'Authorization' in request.body or 'HTTP_AUTHORIZATION' in request.body:
+    elif 'Authorization' in body_str or 'HTTP_AUTHORIZATION' in body_str:
         # Authorization could be passed into body if cross origin request
         # CORS OAuth not currently supported...
         set_cors_authorization(request, r_dict)
@@ -63,7 +66,8 @@ def parse(request, more_id=None):
 
 def set_cors_authorization(request, r_dict):
     # Not allowed to set request body so this is just a copy
-    body, encoded = convert_post_body_to_dict(request.body)
+    body_str = request.body.decode("utf-8") if isinstance(request.body, bytes) else request.body
+    body, encoded = convert_post_body_to_dict(body_str)
     if 'HTTP_AUTHORIZATION' not in r_dict['headers'] and 'HTTP_AUTHORIZATION' not in r_dict['headers']:
         if 'HTTP_AUTHORIZATION' in body:
             r_dict['headers']['Authorization'] = body.pop('HTTP_AUTHORIZATION')
@@ -108,6 +112,7 @@ def set_normal_authorization(request, r_dict):
 
 
 def parse_post_put_body(request, r_dict):
+
     # If there is no body, django test client won't send a content type
     if r_dict['headers']['CONTENT_TYPE']:
         # If it is multipart/mixed we're expecting attachment data (also for
@@ -116,16 +121,17 @@ def parse_post_put_body(request, r_dict):
             parse_attachment(request, r_dict)
         # If it's any other content-type try parsing it out
         else:
-            if request.body:
+            body_str = request.body.decode("utf-8") if isinstance(request.body, bytes) else request.body
+            if body_str:
                 # profile/states use the raw body
-                r_dict['raw_body'] = request.body
+                r_dict['raw_body'] = body_str
                 # Only for statements since document APIs don't have to be JSON
                 if r_dict['auth']['endpoint'] == reverse('lrs:statements').lower():
                     try:
-                        r_dict['body'] = convert_to_datatype(request.body)
+                        r_dict['body'] = convert_to_datatype(body_str)
                     except Exception:
                         try:
-                            r_dict['body'] = QueryDict(request.body).dict()
+                            r_dict['body'] = QueryDict(body_str).dict()
                         except Exception:
                             raise BadRequest("Could not parse request body")
                         else:
@@ -137,7 +143,7 @@ def parse_post_put_body(request, r_dict):
                                     raise BadRequest(
                                         "Could not parse request body, no value for: %s" % k)
                 else:
-                    r_dict['body'] = request.body
+                    r_dict['body'] = body_str
             else:
                 raise BadRequest("No body in request")
     return r_dict
@@ -149,11 +155,12 @@ def parse_cors_request(request, r_dict):
         r_dict['method'] = request.GET['method'].upper()
     except Exception:
         raise BadRequest("Could not find method parameter for CORS request")
-    if len(request.GET.keys()) > 1:
+    if len(list(request.GET.keys())) > 1:
         raise BadRequest("CORS must only include method in query string parameters") 
 
     # Convert body to dict
-    body, encoded = convert_post_body_to_dict(request.body)
+    body_str = request.body.decode("utf-8") if isinstance(request.body, bytes) else request.body
+    body, encoded = convert_post_body_to_dict(body_str)
     if not encoded:
         raise BadRequest("content in CORS was not URL encoded")
 
@@ -178,7 +185,7 @@ def parse_cors_request(request, r_dict):
                 else:
                     # QueryDict will create {'foo':''} key for any string -
                     # does not care if valid query string or not
-                    for k, v in r_dict['body'].items():
+                    for k, v in list(r_dict['body'].items()):
                         if not v:
                             raise BadRequest(
                                 "Could not parse request body in CORS request, no value for: %s" % k)
@@ -212,14 +219,18 @@ def parse_normal_request(request, r_dict):
         r_dict = parse_post_put_body(request, r_dict)
     elif request.method == 'DELETE':
         # Delete can have data which will be in parameter or get params
-        if request.body != '':
-            r_dict['params'].update(ast.literal_eval(request.body))
+        raw = request.body
+        decoded = raw if isinstance(raw, str) else raw.decode("utf-8")
+        if decoded != '':
+            r_dict['params'].update(ast.literal_eval(decoded))
     r_dict['params'].update(request.GET.dict())
     r_dict['method'] = request.method
 
 
 def parse_attachment(request, r_dict):
-    message = request.body
+
+    message = request.body if isinstance(request.body, str) else request.body.decode("utf-8")
+    
     # Python email parse library insists on having the multipart header in the body
     # workaround to add it to the beginning since it will always be included in the header
     lines = message.splitlines()
@@ -230,39 +241,53 @@ def parse_attachment(request, r_dict):
         else:
             raise BadRequest(
                 "Could not find the boundary for the multipart content")
+    
     # end workaround
     msg = email.message_from_string(message)
     if msg.is_multipart():
+
         # Stmt part will always be first
         stmt_part = msg.get_payload().pop(0)
         if stmt_part['Content-Type'] != "application/json":
             raise ParamError(
                 "Content-Type of statement was not application/json")
+        
         try:
             r_dict['body'] = json.loads(stmt_part.get_payload())
         except Exception:
             raise ParamError("Statement was not valid JSON")
+        
         if isinstance(r_dict['body'], dict):
             stmt_sha2s = [a['sha2'] for a in r_dict['body']['attachments'] if 'attachments' in r_dict['body']]
         else:
             stmt_sha2s = [a['sha2'] for s in r_dict['body'] if 'attachments' in s for a in s['attachments']]
+        
         # Each attachment in msg must have binary encoding and hash in header
         part_dict = {}
+        
         for part in msg.get_payload():
             encoding = part.get('Content-Transfer-Encoding', None)
+            
             if encoding != "binary":
                 raise BadRequest(
                     "Each attachment part should have 'binary' as Content-Transfer-Encoding")
+            
             if 'X-Experience-API-Hash' not in part:
                 raise BadRequest(
                     "X-Experience-API-Hash header was missing from attachment")
+            
             part_hash = part.get('X-Experience-API-Hash')
             validate_hash(part_hash, part)
+            
             part_dict[part_hash] = part
-        r_dict['payload_sha2s'] = [p['X-Experience-API-Hash']
-                         for p in msg.get_payload()]
+        
+        r_dict['payload_sha2s'] = [
+            p['X-Experience-API-Hash'] for p in msg.get_payload()
+        ]
+
         if not set(r_dict['payload_sha2s']).issubset(set(stmt_sha2s)):
             raise BadRequest("Not all attachments match with statement payload")
+        
         parse_signature_attachments(r_dict, part_dict)
     else:
         raise ParamError(
@@ -273,7 +298,7 @@ def parse_attachment(request, r_dict):
 
 
 def validate_hash(part_hash, part):
-    if part_hash != str(hashlib.sha256(get_part_payload(part)).hexdigest()):
+    if part_hash != str(hashlib.sha256(get_part_payload(part).encode("utf-8")).hexdigest()):
         raise BadRequest(
             "Hash header %s did not match calculated hash" \
             % part_hash)
@@ -358,7 +383,7 @@ def validate_signature(tup, part):
             verified = jws.verify(
                 signature, cert_to_key(x5c[0]), algorithm)
         except Exception as e:
-            raise BadRequest("The JWS is not valid: %s" % e.message)
+            raise BadRequest("The JWS is not valid: %s" % str(e))
         else:
             if not verified:
                 raise BadRequest(
@@ -380,7 +405,7 @@ def compare_payloads(jws_payload, body_payload, sha2_key):
         jws_placeholder = dict(json.loads(jws_payload))
     except Exception:
         raise BadRequest(
-            "Invalid JSON serialization of signature payload")
+            f"Invalid JSON serialization of signature payload\n\nJWS: {type(jws_payload)} {jws_payload}\n\nBODY: {type(body_payload)} {body_payload}")
 
     jws_placeholder.pop("id", None)
     jws_placeholder.pop("authority", None)

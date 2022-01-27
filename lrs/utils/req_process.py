@@ -7,7 +7,7 @@ from django.http import HttpResponse, HttpResponseNotFound, JsonResponse
 from django.conf import settings
 from django.utils.timezone import utc
 
-from retrieve_statement import complex_get, parse_more_request
+from .retrieve_statement import complex_get, parse_more_request
 from ..exceptions import NotFound
 from ..models import Statement, Agent, Activity
 from ..managers.ActivityProfileManager import ActivityProfileManager
@@ -28,14 +28,14 @@ def process_statement(stmt, auth, payload_sha2s):
 
     # Convert context activities to list if dict
     if 'context' in stmt and 'contextActivities' in stmt['context']:
-        for k, v in stmt['context']['contextActivities'].items():
+        for k, v in list(stmt['context']['contextActivities'].items()):
             if isinstance(v, dict):
                 stmt['context']['contextActivities'][k] = [v]
 
     # Convert context activities to list if dict (for substatements)
     if 'objectType' in stmt['object'] and stmt['object']['objectType'] == 'SubStatement':
         if 'context' in stmt['object'] and 'contextActivities' in stmt['object']['context']:
-            for k, v in stmt['object']['context']['contextActivities'].items():
+            for k, v in list(stmt['object']['context']['contextActivities'].items()):
                 if isinstance(v, dict):
                     stmt['object']['context']['contextActivities'][k] = [v]
 
@@ -185,7 +185,7 @@ def statements_more_get(req_dict):
         resp = HttpResponse(stmt_result, content_type=mime_type, status=200)
     # If not, just dump the stmt_result
     else:
-        if isinstance(stmt_result, basestring):
+        if isinstance(stmt_result, str):
             resp = HttpResponse(
                 stmt_result, content_type=mime_type, status=200)
         else:
@@ -221,7 +221,6 @@ def statements_get(req_dict):
 
     return resp
 
-
 def build_response(stmt_result, single=False):
     sha2s = []
     mime_type = "application/json"
@@ -237,37 +236,52 @@ def build_response(stmt_result, single=False):
             if st_atts:
                 for att in st_atts.all():
                     if att.payload:
-                        sha2s.append(
-                            (att.canonical_data['sha2'], att.payload, att.canonical_data['contentType']))
+
+                        sha2s.append({
+                            "sha2": att.canonical_data['sha2'], 
+                            "payload": att.payload,
+                            "contentType": att.canonical_data['contentType']
+                        })
+
+                        # sha2s.append(
+                            # (att.canonical_data['sha2'], att.payload, att.canonical_data['contentType']))
+    
     # Create multipart message and attach json message to it
     string_list = []
     line_feed = "\r\n"
     boundary = "======ADL_LRS======"
-    string_list.append(line_feed + "--" + boundary + line_feed)
-    string_list.append(
-        "Content-Type:application/json" + line_feed + line_feed)
+
+    string_list.append(f"{line_feed}--{boundary + line_feed}")
+    string_list.append(f"Content-Type:application/json{line_feed + line_feed}")
+    
     if isinstance(stmt_result, dict):
-        string_list.append(
-            json.dumps(stmt_result, sort_keys=False) + line_feed)
+        result_str = json.dumps(stmt_result, sort_keys=False)
+        string_list.append(result_str + line_feed)
     else:
         string_list.append(stmt_result + line_feed)
 
     for sha2 in sha2s:
-        string_list.append("--" + boundary + line_feed)
-        string_list.append("Content-Type:%s" % str(sha2[2]) + line_feed)
-        string_list.append("Content-Transfer-Encoding:binary" + line_feed)
-        string_list.append("X-Experience-API-Hash:" +
-                           str(sha2[0]) + line_feed + line_feed)
+        string_list.append(f"--" + boundary + line_feed)
+        string_list.append(f"Content-Type:{str(sha2['contentType']) + line_feed}")
+        string_list.append(f"Content-Transfer-Encoding:binary{line_feed}")
+        string_list.append(f"X-Experience-API-Hash:{str(sha2['sha2']) + line_feed + line_feed}")
 
         chunks = []
         try:
             # Default chunk size is 64kb
-            for chunk in sha2[1].chunks():
+            for chunk in sha2["payload"].chunks():
+                if isinstance(chunk, bytes):
+                    chunk = chunk.decode("utf-8")
+                
                 chunks.append(chunk)
+        
         except OSError:
-            raise NotFound(2, "No such file or directory",
-                          sha2[1].name.split("/")[1])
-        string_list.append("".join(chunks) + line_feed)
+            raise NotFound(2, f"No such file or directory {chunks} {sha2}", sha2["payload"].name)
+        
+        try:
+            string_list.append("".join(chunks) + line_feed)
+        except TypeError as te:
+            raise TypeError(f"{type(string_list)} vs. {type(chunks)} \n\n{te}")
 
     string_list.append("--" + boundary + "--\r\n")
     mime_type = 'multipart/mixed; boundary=' + '"%s"' % boundary

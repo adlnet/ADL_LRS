@@ -1,7 +1,7 @@
 # Django settings for adl_lrs project.
 from os import path
 from os.path import dirname, abspath
-from ConfigParser import RawConfigParser
+from configparser import RawConfigParser
 
 ALLOWED_HOSTS = ['*']
 
@@ -11,7 +11,6 @@ PROJECT_ROOT = dirname(dirname(SETTINGS_DIR))
 
 config = RawConfigParser()
 config.read(SETTINGS_DIR+'/settings.ini')
-
 
 # If you want to debug
 DEBUG = config.getboolean('debug', 'DEBUG')
@@ -25,7 +24,6 @@ EMAIL_PORT = config.getint('email', 'EMAIL_PORT')
 EMAIL_HOST_USER = config.get('email', 'EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = config.get('email', 'EMAIL_HOST_PASSWORD')
 EMAIL_USE_SSL = config.getboolean('email', 'EMAIL_USE_SSL')
-
 
 DATABASES = {
     'default': {
@@ -69,6 +67,9 @@ USE_TZ = True
 
 # Set this to True if you would like to utilize the webhooks functionality
 USE_HOOKS = config.getboolean('hooks', 'USE_HOOKS')
+
+# Newer versions of Django recommend specifying a default auto field here
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
 # Absolute filesystem path to the directory that will hold user-uploaded files.
 # Example: "/home/media/media.lawrence.com/media/"
@@ -239,7 +240,7 @@ CORS_EXPOSE_HEADERS = (
     'Accept-Language'
 )
 
-MIDDLEWARE_CLASSES = (
+MIDDLEWARE = (
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -287,13 +288,13 @@ LOGGING = {
     'disable_existing_loggers': False,
     'formatters': {
         'verbose': {
-            'format': u'%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s'
+            'format': '%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s'
         },
         'standard': {
-            'format': u'%(asctime)s [%(levelname)s] %(name)s: %(message)s'
+            'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
         },
         'simple': {
-            'format': u'%(levelname)s %(message)s'
+            'format': '%(levelname)s %(message)s'
         },
     },
     'handlers': {

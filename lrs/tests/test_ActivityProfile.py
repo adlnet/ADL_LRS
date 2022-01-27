@@ -1,12 +1,12 @@
 import ast
 import json
 import hashlib
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import base64
 
 from django.test import TestCase
 from django.conf import settings
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from lrs import models
 
@@ -26,7 +26,7 @@ class ActivityProfileTests(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        print "\n%s" % __name__
+        print("\n%s" % __name__)
         super(ActivityProfileTests, cls).setUpClass()
 
     def setUp(self):
@@ -43,7 +43,7 @@ class ActivityProfileTests(TestCase):
         self.testparams1 = {"profileId": self.testprofileId1,
                             "activityId": self.test_activityId1}
         path = '%s?%s' % (reverse('lrs:activity_profile'),
-                          urllib.urlencode(self.testparams1))
+                          urllib.parse.urlencode(self.testparams1))
         self.testprofile1 = {"test": "put profile 1",
                              "obj": {"activity": "test"}}
         self.post1 = self.client.post(path, self.testprofile1, content_type=self.content_type,
@@ -52,7 +52,7 @@ class ActivityProfileTests(TestCase):
         self.testparams2 = {"profileId": self.testprofileId2,
                             "activityId": self.test_activityId2}
         path = '%s?%s' % (reverse('lrs:activity_profile'),
-                          urllib.urlencode(self.testparams2))
+                          urllib.parse.urlencode(self.testparams2))
         self.testprofile2 = {"test": "put profile 2",
                              "obj": {"activity": "test"}}
         self.post2 = self.client.post(path, self.testprofile2, content_type=self.content_type,
@@ -61,7 +61,7 @@ class ActivityProfileTests(TestCase):
         self.testparams3 = {"profileId": self.testprofileId3,
                             "activityId": self.test_activityId3}
         path = '%s?%s' % (reverse('lrs:activity_profile'),
-                          urllib.urlencode(self.testparams3))
+                          urllib.parse.urlencode(self.testparams3))
         self.testprofile3 = {"test": "put profile 3",
                              "obj": {"activity": "test"}}
         self.post3 = self.client.post(path, self.testprofile3, content_type=self.content_type,
@@ -70,7 +70,7 @@ class ActivityProfileTests(TestCase):
         self.testparams4 = {"profileId": self.otherprofileId1,
                             "activityId": self.other_activityId}
         path = '%s?%s' % (reverse('lrs:activity_profile'),
-                          urllib.urlencode(self.testparams4))
+                          urllib.parse.urlencode(self.testparams4))
         self.otherprofile1 = {
             "test": "put profile other", "obj": {"activity": "other"}}
         self.post4 = self.client.post(path, self.otherprofile1, content_type=self.content_type,
@@ -79,7 +79,7 @@ class ActivityProfileTests(TestCase):
         self.testparams5 = {"profileId": self.otherprofileId1,
                             "activityId": self.test_activityId1}
         path = '%s?%s' % (reverse('lrs:activity_profile'),
-                          urllib.urlencode(self.testparams5))
+                          urllib.parse.urlencode(self.testparams5))
         self.anotherprofile1 = {
             "test": "put another profile 1", "obj": {"activity": "other"}}
         self.post5 = self.client.post(path, self.anotherprofile1, content_type=self.content_type,
@@ -119,7 +119,7 @@ class ActivityProfileTests(TestCase):
 
     def test_put(self):
         path = '%s?%s' % (reverse('lrs:activity_profile'),
-                          urllib.urlencode({"profileId": "http://put.profile.id/new",
+                          urllib.parse.urlencode({"profileId": "http://put.profile.id/new",
                             "activityId": "http://main.activity.com"}))
         profile = {"test": "good - trying to put new profile w/ etag header",
                    "obj": {"activity": "act:test"}}
@@ -128,7 +128,7 @@ class ActivityProfileTests(TestCase):
         self.assertEqual(response.status_code, 204)
 
         path = '%s?%s' % (reverse('lrs:activity_profile'),
-                          urllib.urlencode({"profileId": "http://put.profile.id/new",
+                          urllib.parse.urlencode({"profileId": "http://put.profile.id/new",
                             "activityId": "http://main.activity.com"}))
         profile = {"test": "good - trying to put new profile w/ etag header",
                    "obj": {"activity": "act:test"}}
@@ -139,27 +139,27 @@ class ActivityProfileTests(TestCase):
     def test_put_no_params(self):
         put = self.client.put(reverse('lrs:activity_profile'), content_type=self.content_type,
                               Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
-        self.assertEquals(
+        self.assertEqual(
             put.content, 'Error -- activity_profile - method = PUT, but activityId parameter missing..')
 
     def test_put_no_activityId(self):
         put = self.client.put(reverse('lrs:activity_profile'), {
                               'profileId': '10'}, content_type=self.content_type, Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
-        self.assertEquals(
+        self.assertEqual(
             put.content, 'Error -- activity_profile - method = PUT, but activityId parameter missing..')
 
     def test_put_no_profileId(self):
         testparams = {'activityId': 'act:act:act'}
         path = '%s?%s' % (reverse('lrs:activity_profile'),
-                          urllib.urlencode(testparams))
+                          urllib.parse.urlencode(testparams))
         put = self.client.put(path, content_type=self.content_type,
                               Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
-        self.assertEquals(
+        self.assertEqual(
             put.content, 'Error -- activity_profile - method = PUT, but profileId parameter missing..')
 
     def test_put_etag_missing_on_change(self):
         path = '%s?%s' % (reverse('lrs:activity_profile'),
-                          urllib.urlencode(self.testparams1))
+                          urllib.parse.urlencode(self.testparams1))
         profile = {"test": "error - trying to put new profile w/o etag header",
                    "obj": {"activity": "test"}}
         response = self.client.put(path, profile, content_type=self.content_type,
@@ -178,7 +178,7 @@ class ActivityProfileTests(TestCase):
 
     def test_put_etag_right_on_change(self):
         path = '%s?%s' % (reverse('lrs:activity_profile'),
-                          urllib.urlencode(self.testparams1))
+                          urllib.parse.urlencode(self.testparams1))
         profile = {"test": "good - trying to put new profile w/ etag header",
                    "obj": {"activity": "act:test"}}
         thehash = '"%s"' % hashlib.sha1('%s' % self.testprofile1).hexdigest()
@@ -192,7 +192,7 @@ class ActivityProfileTests(TestCase):
 
     def test_put_etag_wrong_on_change(self):
         path = '%s?%s' % (reverse('lrs:activity_profile'),
-                          urllib.urlencode(self.testparams1))
+                          urllib.parse.urlencode(self.testparams1))
         profile = {"test": "error - trying to put new profile w/ wrong etag value",
                    "obj": {"activity": "act:test"}}
         thehash = '"%s"' % hashlib.sha1('%s' % 'wrong hash').hexdigest()
@@ -213,7 +213,7 @@ class ActivityProfileTests(TestCase):
         params = {"profileId": 'http://etag.nomatch.good',
                   "activityId": self.test_activityId1}
         path = '%s?%s' % (reverse('lrs:activity_profile'),
-                          urllib.urlencode(params))
+                          urllib.parse.urlencode(params))
         profile = {"test": "good - trying to put new profile w/ if none match etag header",
                    "obj": {"activity": "act:test"}}
         response = self.client.put(path, json.dumps(profile), content_type=self.content_type,
@@ -231,7 +231,7 @@ class ActivityProfileTests(TestCase):
 
     def test_put_etag_if_none_match_good_value(self):
         path = '%s?%s' % (reverse('lrs:activity_profile'),
-                          urllib.urlencode({"profileId": self.testprofileId1,
+                          urllib.parse.urlencode({"profileId": self.testprofileId1,
                   "activityId": self.test_activityId1}))
         profile = {"test": "good - trying to put updated profile w/ if none match etag header",
                    "obj": {"activity": "test"}}
@@ -254,7 +254,7 @@ class ActivityProfileTests(TestCase):
 
     def test_put_etag_if_none_match_bad(self):
         path = '%s?%s' % (reverse('lrs:activity_profile'),
-                          urllib.urlencode(self.testparams1))
+                          urllib.parse.urlencode(self.testparams1))
         profile = {"test": "error - trying to put new profile w/ if none match etag but one exists",
                    "obj": {"activity": "act:test"}}
         response = self.client.put(path, profile, content_type=self.content_type, If_None_Match='*',
@@ -272,7 +272,7 @@ class ActivityProfileTests(TestCase):
 
     def test_put_etag_if_none_match_bad_value(self):
         path = '%s?%s' % (reverse('lrs:activity_profile'),
-                          urllib.urlencode(self.testparams1))
+                          urllib.parse.urlencode(self.testparams1))
         profile = {"test": "error - trying to put new profile w/ if none match etag but one exists",
                    "obj": {"agent": "test"}}        
         thehash = '"%s"' % hashlib.sha1('%s' % self.testprofile1).hexdigest()
@@ -340,7 +340,7 @@ class ActivityProfileTests(TestCase):
 
         params = {"profileId": profid, "activityId": actid}
         path = '%s?%s' % (reverse('lrs:activity_profile'),
-                          urllib.urlencode(params))
+                          urllib.parse.urlencode(params))
         prof = {"test": "timezone since", "obj": {"activity": "other"}}
         r = self.client.put(path, json.dumps(prof), content_type=self.content_type, updated="2012-11-11T12:00:00+00:00",
                             If_None_Match="*", Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
@@ -368,7 +368,7 @@ class ActivityProfileTests(TestCase):
 
         params = {"profileId": profid, "activityId": actid}
         path = '%s?%s' % (reverse('lrs:activity_profile'),
-                          urllib.urlencode(params))
+                          urllib.parse.urlencode(params))
         prof = {"test": "timezone since", "obj": {"activity": "other"}}
         r = self.client.put(path, json.dumps(prof), content_type=self.content_type, updated="2012-11-11T12:00:00+00:00",
                             If_None_Match="*", Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
@@ -413,10 +413,10 @@ class ActivityProfileTests(TestCase):
         testparams1 = {"profileId": profileid, "activityId": activityid}
         content = {"test": "put profile 1", "obj": {"activity": "act:test"}}
         params = "profileId=%s&activityId=%s&Authorization=%s&content=%s&X-Experience-API-Version=1.0&If-None-Match=*" % (
-            profileid, activityid, self.auth, urllib.quote(str(content)))
+            profileid, activityid, self.auth, urllib.parse.quote(str(content)))
 
         path = path = '%s?%s' % (
-            reverse('lrs:activity_profile'), urllib.urlencode({"method": "PUT"}))
+            reverse('lrs:activity_profile'), urllib.parse.urlencode({"method": "PUT"}))
 
         st = json.dumps({"actor": {"objectType": "Agent", "mbox": "mailto:tom@adlnet.gov"},
                          "verb": {"id": "http://example.com/verbs/assess", "display": {"en-US": "assessed"}},
@@ -451,7 +451,7 @@ class ActivityProfileTests(TestCase):
         self.assertEqual(st_post.status_code, 200)
 
         path = '%s?%s' % (reverse('lrs:activity_profile'),
-                          urllib.urlencode(self.testparams1))
+                          urllib.parse.urlencode(self.testparams1))
         tp = {"test": "put example profile for test_cors_put_etag", "obj": {
             "activity": "this should be replaced -- ie cors post/put"}}
         thehash = '"%s"' % hashlib.sha1('%s' % self.testprofile1).hexdigest()
@@ -459,13 +459,13 @@ class ActivityProfileTests(TestCase):
                                Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(put1.status_code, 204)
         path = '%s?%s' % (reverse('lrs:activity_profile'),
-                          urllib.urlencode({"method": "PUT"}))
+                          urllib.parse.urlencode({"method": "PUT"}))
 
         content = {"test": "good - trying to put new profile w/ etag header - IE cors",
                    "obj": {"activity": "test IE cors etag"}}
         thehash = '"%s"' % hashlib.sha1('%s' % tp).hexdigest()
         thedata = "profileId=%s&activityId=%s&If-Match=%s&Authorization=%s&Content-Type=application/x-www-form-urlencoded&content=%s&X-Experience-API-Version=1.0.0&If-None-Match=*" % (
-            pid, aid, thehash, self.auth, urllib.quote(str(content)))
+            pid, aid, thehash, self.auth, urllib.parse.quote(str(content)))
 
         response = self.client.post(
             path, thedata, content_type="application/x-www-form-urlencoded")
@@ -484,7 +484,7 @@ class ActivityProfileTests(TestCase):
         params = {"profileId": "http://test.tetris/",
                   "activityId": "act:tetris.snafu"}
         path = '%s?%s' % (reverse('lrs:activity_profile'),
-                          urllib.urlencode(params))
+                          urllib.parse.urlencode(params))
         profile = {"test": "put profile 1", "obj": {"activity": "test"}}
 
         st = json.dumps({"actor": {"objectType": "Agent", "mbox": "mailto:tom@adlnet.gov"},
@@ -510,7 +510,7 @@ class ActivityProfileTests(TestCase):
         params = {"profileId": "prof:test_post_new_profile",
                   "activityId": "act:test.post.new.prof"}
         path = '%s?%s' % (reverse('lrs:activity_profile'),
-                          urllib.urlencode(params))
+                          urllib.parse.urlencode(params))
         prof = {"test": "post new profile", "obj": {
             "activity": "act:test.post.new.prof"}}
 
@@ -531,7 +531,7 @@ class ActivityProfileTests(TestCase):
         params = {"profileId": "prof:test_post_new_profile",
                   "activityId": "act:test.post.new.prof"}
         path = '%s?%s' % (reverse('lrs:activity_profile'),
-                          urllib.urlencode(params))
+                          urllib.parse.urlencode(params))
         prof = ""
 
         post = self.client.post(path, prof, content_type="application/json",
@@ -544,7 +544,7 @@ class ActivityProfileTests(TestCase):
         params = {"profileId": "prof:test_post_and_put_profile",
                   "activityId": "act:test.post.put.prof"}
         path = '%s?%s' % (reverse('lrs:activity_profile'),
-                          urllib.urlencode(params))
+                          urllib.parse.urlencode(params))
         prof = {"test": "post and put profile", "obj": {
             "activity": "act:test.post.put.prof"}}
 
@@ -562,7 +562,7 @@ class ActivityProfileTests(TestCase):
         params = {"profileId": "prof:test_post_and_put_profile",
                   "activityId": "act:test.post.put.prof"}
         path = '%s?%s' % (reverse('lrs:activity_profile'),
-                          urllib.urlencode(params))
+                          urllib.parse.urlencode(params))
         prof = {"wipe": "new data"}
         thehash = get.get('etag')
 
@@ -583,18 +583,18 @@ class ActivityProfileTests(TestCase):
     def test_put_wrong_activityId(self):
         params = {'activityId': 'foo', 'profileId': '10'}
         path = '%s?%s' % (reverse('lrs:activity_profile'),
-                          urllib.urlencode(params))
+                          urllib.parse.urlencode(params))
 
         put = self.client.put(path, '{"test":"body"}', content_type=self.content_type,
                               Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
-        self.assertEquals(
+        self.assertEqual(
             put.content, 'activityId param for activity profile with value foo was not a valid IRI')
 
     def test_current_tetris(self):
         params = {"profileId": "profile:highscores",
                   "activityId": "act:adlnet.gov/JsTetris_TCAPI"}
         path = '%s?%s' % (reverse('lrs:activity_profile'),
-                          urllib.urlencode(params))
+                          urllib.parse.urlencode(params))
         put = self.client.put(path, '[{"actor":{"name":"tom","mbox":"mailto:tom@tom.com"},"score":802335,"date":"2013-07-26T13:42:13.465Z"},{"actor":{"name":"tom","mbox":"mailto:tom@tom.com"},"score":159482,"date":"2013-07-26T13:49:14.011Z"},{"actor":{"name":"lou","mbox":"mailto:l@l.com"},"score":86690,"date":"2013-07-26T13:27:29.083Z"},{"actor":{"name":"tom","mbox":"mailto:tom@tom.com"},"score":15504,"date":"2013-07-26T13:27:30.763Z"},{"actor":{"name":"tom","mbox":"mailto:tom@tom.com"},"score":1982,"date":"2013-07-26T13:29:46.067Z"},{"actor":{"name":"unknown","mbox":"mailto:unknown@example.com"},"score":348,"date":"2013-07-26T13:51:08.043Z"}]', If_None_Match="*", content_type="application/json", Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)
         self.assertEqual(put.status_code, 204)
 
@@ -609,7 +609,7 @@ class ActivityProfileTests(TestCase):
         params = {"profileId": "prof:test_json_merge",
                   "activityId": "act:test.json.merge.prof"}
         path = '%s?%s' % (reverse('lrs:activity_profile'),
-                          urllib.urlencode(params))
+                          urllib.parse.urlencode(params))
 
         post = self.client.post(path, prof, content_type="application/json", If_None_Match='*',
                                 Authorization=self.auth, X_Experience_API_Version=settings.XAPI_VERSION)

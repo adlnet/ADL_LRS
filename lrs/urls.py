@@ -21,5 +21,5 @@ urlpatterns = [
     url(r'^about$', views.about, name='about'),
 
     # xapi oauth endpoints
-    url(r'^OAuth/', include('oauth_provider.urls', namespace='oauth')),
+    url(r'^OAuth/', include(('oauth_provider.urls', 'oauth'), namespace='oauth')),
 ]

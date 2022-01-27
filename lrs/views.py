@@ -1,9 +1,10 @@
 import logging
 
 from django.conf import settings
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.db import transaction
-from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
+from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
+from django.core.exceptions import SuspiciousOperation
 from django.utils.decorators import decorator_from_middleware
 from django.views.decorators.http import require_http_methods
 
@@ -119,6 +120,7 @@ def agents(request):
 
 @transaction.atomic
 def handle_request(request, more_id=None):
+
     validators = {
         reverse('lrs:statements').lower(): {
             "POST": req_validate.statements_post,
@@ -209,13 +211,13 @@ def handle_request(request, more_id=None):
             path = path.rstrip('/')
         # Cutoff more_id
         if 'more' in path:
-            path = "%s/%s" % (reverse('lrs:statements').lower(), "more")
+            path = reverse('lrs:statements').lower() + "/" + "more"
         req_dict = validators[path][r_dict['method']](r_dict)
         return processors[path][req_dict['method']](req_dict)
-    except (BadRequest, OauthBadRequest, HttpResponseBadRequest) as err:
+    except (BadRequest, OauthBadRequest, SuspiciousOperation) as err:
         status = 400
         log_exception(status, request.path)
-        response = HttpResponse(err.message, status=status)
+        response = HttpResponse(str(err), status=status)
     except (Unauthorized, OauthUnauthorized) as autherr:
         status = 401
         log_exception(status, request.path)
@@ -224,23 +226,23 @@ def handle_request(request, more_id=None):
     except Forbidden as forb:
         status = 403
         log_exception(status, request.path)
-        response = HttpResponse(forb.message, status=status)
+        response = HttpResponse(str(msg), status=status)
     except NotFound as nf:
         status = 404
         log_exception(status, request.path)
-        response = HttpResponse(nf.message, status=status)
+        response = HttpResponse(str(nf), status=status)
     except Conflict as c:
         status = 409
         log_exception(status, request.path)
-        response = HttpResponse(c.message, status=status)
+        response = HttpResponse(str(c), status=status)
     except PreconditionFail as pf:
         status = 412
         log_exception(status, request.path)
-        response = HttpResponse(pf.message, status=status)
+        response = HttpResponse(str(pf), status=status)
     except Exception as err:
         status = 500
         log_exception(status, request.path)
-        response = HttpResponse(err.message, status=status)   
+        response = HttpResponse(str(err), status=status)   
     return response
 
 def log_exception(status, path):

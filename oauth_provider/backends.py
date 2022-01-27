@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import django.core.validators
-from compat import get_user_model
+from .compat import get_user_model
 
 User = get_user_model()
 

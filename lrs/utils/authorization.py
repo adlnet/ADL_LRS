@@ -4,7 +4,7 @@ from functools import wraps
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from ..exceptions import Unauthorized, BadRequest, Forbidden, OauthUnauthorized, OauthBadRequest
 from ..models import Agent
@@ -15,7 +15,6 @@ from oauth_provider.decorators import CheckOauth
 from oauth_provider.store import store
 
 # A decorator, that can be used to authenticate some requests at the site.
-
 
 def auth(func):
     @wraps(func)
@@ -38,7 +37,6 @@ def auth(func):
 
 # Decorater used for non-xapi endpoints
 
-
 def non_xapi_auth(func):
     @wraps(func)
     def inner(request, *args, **kwargs):
@@ -50,7 +48,7 @@ def non_xapi_auth(func):
         elif request.user:
             auth = request.user
         if auth:
-            if isinstance(auth, basestring):
+            if isinstance(auth, str):
                 if auth[:6] == 'OAuth ':
                     oauth_request = get_oauth_request(request)
                     # Returns HttpBadRequest if missing any params
@@ -75,8 +73,10 @@ def non_xapi_auth(func):
                     auth = auth.split()
                     if len(auth) == 2:
                         if auth[0].lower() == 'basic':
-                            uname, passwd = base64.b64decode(
-                                auth[1]).split(':')
+
+                            auth_parsed = decode_base64_string(auth[1])
+                            [uname, passwd] = auth_parsed.split(':')
+                            
                             if uname and passwd:
                                 user = authenticate(
                                     username=uname, password=passwd)
@@ -101,6 +101,12 @@ def non_xapi_auth(func):
         return func(request, *args, **kwargs)
     return inner
 
+def decode_base64_string(base64_message):
+    base64_bytes = base64_message.encode("ascii")
+    message_bytes = base64.b64decode(base64_bytes)
+    message = message_bytes.decode("ascii")
+
+    return message
 
 def get_user_from_auth(auth):
     if not auth:
@@ -184,10 +190,12 @@ def http_auth_helper(request):
         if len(auth) == 2:
             if auth[0].lower() == 'basic':
                 # Currently, only basic http auth is used.
+                auth_parsed = decode_base64_string(auth[1])
                 try:
-                    uname, passwd = base64.b64decode(auth[1]).split(':')
-                except Exception, e:
-                    raise BadRequest("Authorization failure: %s" % e.message)
+                    auth_parsed = decode_base64_string(auth[1])
+                    [uname, passwd] = auth_parsed.split(':')
+                except Exception as e:
+                    raise BadRequest(f"Authorization failure: {e}, {auth[1]} was type {type(auth[1])} -> {auth_parsed}")
                 # Sent in empty auth - now allowed when not allowing empty auth
                 # in settings
                 if not uname and not passwd and not settings.ALLOW_EMPTY_HTTP_AUTH:

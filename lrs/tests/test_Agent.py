@@ -2,7 +2,7 @@ import json
 import base64
 
 from django.test import TestCase
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.conf import settings
 
 from ..models import Agent
@@ -14,7 +14,7 @@ class AgentTests(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        print "\n%s" % __name__
+        print("\n%s" % __name__)
         super(AgentTests, cls).setUpClass()
 
     def setUp(self):

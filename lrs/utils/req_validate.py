@@ -3,8 +3,8 @@ from isodate.isoerror import ISO8601Error
 import uuid
 
 from . import get_agent_ifp, convert_to_datatype
-from authorization import auth
-from StatementValidator import StatementValidator
+from .authorization import auth
+from .StatementValidator import StatementValidator
 
 from ..models import Statement, Agent, Activity, ActivityState, ActivityProfile, AgentProfile
 from ..exceptions import ParamConflict, ParamError, Forbidden, BadRequest, IDNotFoundError
@@ -56,16 +56,22 @@ def validate_void_statement(void_id):
             raise BadRequest(err_msg)
 
 def validate_body(body, auth, content_type):
-    [server_validate_statement(
-        stmt, auth, content_type) for stmt in body]
-
-
+    try:
+        for statement in body:
+            server_validate_statement(statement, auth, content_type)
+    except ValueError:
+        raise ValueError(f"'id' not iterable within statement: {stmt}, {type(stmt)}), {auth}, {content_type}")
+        
 def server_validate_statement(stmt, auth, content_type):
-    if 'id' in stmt:
-        statement_id = stmt['id']
-        if check_for_existing_statementId(statement_id):
-            err_msg = "A statement with ID %s already exists" % statement_id
-            raise ParamConflict(err_msg)
+    try:
+        if 'id' in stmt:
+            statement_id = stmt['id']
+            if check_for_existing_statementId(statement_id):
+                err_msg = "A statement with ID %s already exists" % statement_id
+                raise ParamConflict(err_msg)
+    
+    except TypeError as te:
+        raise ValueError(f"'id' not iterable within statement: {stmt}, {type(stmt)}), {auth}, {content_type}")
 
     if stmt['verb']['id'] == 'http://adlnet.gov/expapi/verbs/voided':
         validate_void_statement(stmt['object']['id'])
@@ -77,17 +83,17 @@ def server_validate_statement(stmt, auth, content_type):
 
 @auth
 def statements_post(req_dict):
-    if req_dict['params'].keys():
+    if list(req_dict['params'].keys()):
         raise ParamError("The post statements request contained unexpected parameters: %s" % ", ".join(
-            req_dict['params'].keys()))
+            list(req_dict['params'].keys())))
 
     try:
         validator = StatementValidator(req_dict['body'])
         validator.validate()
     except Exception as e:
-        raise BadRequest(e.message)
+        raise BadRequest(str(e))
     except ParamError as e:
-        raise ParamError(e.message)
+        raise ParamError(str(e))
 
     if isinstance(req_dict['body'], dict):
         body = [req_dict['body']]
@@ -307,9 +313,9 @@ def statements_put(req_dict):
         validator = StatementValidator(req_dict['body'])
         validator.validate()
     except Exception as e:
-        raise BadRequest(e.message)
+        raise BadRequest(str(e))
     except ParamError as e:
-        raise ParamError(e.message)
+        raise ParamError(str(e))
     validate_body([req_dict['body']], req_dict['auth'], req_dict['headers']['CONTENT_TYPE'])
     return req_dict
 

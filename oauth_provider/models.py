@@ -1,6 +1,6 @@
 import uuid
-import urllib
-import urlparse
+import urllib.request, urllib.parse, urllib.error
+import urllib.parse
 from datetime import datetime
 from time import time
 import oauth2 as oauth
@@ -21,7 +21,7 @@ class Nonce(models.Model):
     timestamp = models.PositiveIntegerField(db_index=True)
 
     def __unicode__(self):
-        return u"Nonce %s for %s" % (self.key, self.consumer_key)
+        return "Nonce %s for %s" % (self.key, self.consumer_key)
 
 # LRS CHANGE - NOT NEEDED
 # class Scope(models.Model):
@@ -55,11 +55,11 @@ class Consumer(models.Model):
     rsa_signature = models.BooleanField(default=False)
 
     status = models.SmallIntegerField(choices=CONSUMER_STATES, default=PENDING)
-    user = models.ForeignKey(AUTH_USER_MODEL, null=True, blank=True)
+    user = models.ForeignKey(AUTH_USER_MODEL, null=True, blank=True, on_delete=models.CASCADE)
     xauth_allowed = models.BooleanField("Allow xAuth", default=False)
 
     def __unicode__(self):
-        return u"Consumer %s with key %s" % (self.name, self.key)
+        return "Consumer %s with key %s" % (self.name, self.key)
 
     def generate_random_codes(self):
         """
@@ -82,18 +82,18 @@ class Consumer(models.Model):
 class Token(models.Model):
     REQUEST = 1
     ACCESS = 2
-    TOKEN_TYPES = ((REQUEST, u'Request'), (ACCESS, u'Access'))
+    TOKEN_TYPES = ((REQUEST, 'Request'), (ACCESS, 'Access'))
 
     key = models.CharField(max_length=KEY_SIZE, null=True, blank=True)
     secret = models.CharField(
         max_length=RSA_SECRET_SIZE, null=True, blank=True)
     token_type = models.SmallIntegerField(choices=TOKEN_TYPES)
-    timestamp = models.IntegerField(default=long(time()))
+    timestamp = models.IntegerField(default=int(time()))
     is_approved = models.BooleanField(default=False)
 
     user = models.ForeignKey(AUTH_USER_MODEL, null=True,
-                             blank=True, related_name='tokens')
-    consumer = models.ForeignKey(Consumer)
+                             blank=True, related_name='tokens', on_delete=models.CASCADE)
+    consumer = models.ForeignKey(Consumer, on_delete=models.CASCADE)
     # LRS CHANGE - LRS SCOPES AREN'T RESOURCES
     # scope = models.ForeignKey(Scope, null=True, blank=True)
     scope = models.CharField(
@@ -116,7 +116,7 @@ class Token(models.Model):
     objects = TokenManager()
 
     def __unicode__(self):
-        return u"%s Token %s for %s" % (self.get_token_type_display(), self.key, self.consumer)
+        return "%s Token %s for %s" % (self.get_token_type_display(), self.key, self.consumer)
 
     def to_string(self, only_key=False):
         token_dict = {
@@ -131,7 +131,7 @@ class Token(models.Model):
             del token_dict['oauth_token_secret']
             del token_dict['oauth_callback_confirmed']
 
-        return urllib.urlencode(token_dict)
+        return urllib.parse.urlencode(token_dict)
 
     def generate_random_codes(self):
         """
@@ -148,7 +148,7 @@ class Token(models.Model):
         OAuth 1.0a, append the oauth_verifier.
         """
         if self.callback and self.verifier:
-            parts = urlparse.urlparse(self.callback)
+            parts = urllib.parse.urlparse(self.callback)
             scheme, netloc, path, params, query, fragment = parts[:6]
             if query:
                 query = '%s&oauth_verifier=%s' % (query, self.verifier)
@@ -162,10 +162,10 @@ class Token(models.Model):
                 path = "?".join(path[:-1])
 
             if args is not None:
-                query += "&%s" % urllib.urlencode(args)
-            return urlparse.urlunparse((scheme, netloc, path, params,
+                query += "&%s" % urllib.parse.urlencode(args)
+            return urllib.parse.urlunparse((scheme, netloc, path, params,
                                         query, fragment))
-        args = args is not None and "?%s" % urllib.urlencode(args) or ""
+        args = args is not None and "?%s" % urllib.parse.urlencode(args) or ""
         return self.callback and self.callback + args
 
     def set_callback(self, callback):

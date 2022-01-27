@@ -1,6 +1,6 @@
-from __future__ import absolute_import
 
-import urllib2
+
+import urllib.request, urllib.error, urllib.parse
 import json
 import hmac
 import requests
@@ -62,9 +62,9 @@ def check_statement_hooks(stmt_ids):
                         str(config['endpoint']), data=data, headers=headers, verify=False)
                     celery_logger.info("Response code for sending statements to hook endpoint %s : %s - %s" % (
                         str(config['endpoint']), resp.status_code, resp.content))
-                except Exception, e:
+                except Exception as e:
                     celery_logger.exception("Could not send statements to hook %s: %s" % (
-                        str(config['endpoint']), e.message))
+                        str(config['endpoint']), str(e)))
     except SoftTimeLimitExceeded:
         celery_logger.exception("Statement hook task timed out")
 
@@ -73,7 +73,7 @@ def parse_filter(filters, filterQ):
     from .models import Agent
     actorQ, verbQ, objectQ, filterQ = Q(), Q(), Q(), Q()
     if isinstance(filters, dict):
-        if 'actor' in filters.keys():
+        if 'actor' in list(filters.keys()):
             actors = filters.pop('actor')
             if isinstance(actors, list):
                 for a in actors:
@@ -85,13 +85,13 @@ def parse_filter(filters, filterQ):
                     else:
                         if agent:
                             actorQ = actorQ | Q(actor=agent)
-        if 'verb' in filters.keys():
+        if 'verb' in list(filters.keys()):
             verbs = filters.pop('verb')
             if isinstance(verbs, list):
                 for v in verbs:
                     if 'id' in v:
                         verbQ = verbQ | Q(verb__verb_id=v['id'])
-        if 'object' in filters.keys():
+        if 'object' in list(filters.keys()):
             objects = filters.pop('object')
             if isinstance(objects, list):
                 for o in objects:
@@ -100,7 +100,7 @@ def parse_filter(filters, filterQ):
                             object_activity__activity_id=o['id'])
         filterQ = actorQ & verbQ & objectQ
 
-        if 'related' in filters.keys():
+        if 'related' in list(filters.keys()):
             related = filters.pop('related')
             if isinstance(related, list):
                 filterQ = filterQ & parse_related_filter(related, True)
@@ -114,11 +114,11 @@ def parse_related_filter(related, or_operand):
     act_list = []
     for ob in related:
         # Any or/and values should be a list
-        if 'or' in ob.keys():
+        if 'or' in list(ob.keys()):
             ors = ob['or']
             if isinstance(ors, list):
                 innerQ = innerQ | parse_related_filter(ors, True)
-        elif 'and' in ob.keys():
+        elif 'and' in list(ob.keys()):
             ands = ob['and']
             if isinstance(ands, list):
                 innerQ = innerQ & parse_related_filter(ands, False)
@@ -192,9 +192,9 @@ def get_activity_metadata(act_id):
     act_url_data = {}
     # See if id resolves
     try:
-        req = urllib2.Request(act_id)
+        req = urllib.request.Request(act_id)
         req.add_header('Accept', 'application/json, */*')
-        act_resp = urllib2.urlopen(
+        act_resp = urllib.request.urlopen(
             req, timeout=settings.ACTIVITY_ID_RESOLVE_TIMEOUT)
     except Exception:
         # Doesn't resolve-hopefully data is in payload
@@ -215,10 +215,10 @@ def get_activity_metadata(act_id):
                 fake_activity = {"id": act_id, "definition": act_url_data}
                 validator = StatementValidator()
                 validator.validate_activity(fake_activity)
-            except Exception, e:
+            except Exception as e:
                 valid_url_data = False
                 celery_logger.exception(
-                    "Activity Metadata Retrieval Error: " + e.message)
+                    "Activity Metadata Retrieval Error: " + str(e))
 
             if valid_url_data:
                 update_activity_definition(fake_activity)
@@ -236,5 +236,5 @@ def update_activity_definition(act):
     # If the activity already exists in the db
     else:
         activity.canonical_data = dict(
-            activity.canonical_data.items() + act.items())
+            list(activity.canonical_data.items()) + list(act.items()))
         activity.save()
