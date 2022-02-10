@@ -10,7 +10,7 @@ RUN apt-get update && \
 	pip3 install fabric3 virtualenv
 
 RUN echo "Cloning LRS Branch" && \
-	git clone https://github.com/adlnet/ADL_LRS -b python3 /opt/lrs/ADL_LRS		
+	git clone https://github.com/adlnet/ADL_LRS /opt/lrs/ADL_LRS		
 
 WORKDIR /opt/lrs/ADL_LRS
 
