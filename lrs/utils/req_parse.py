@@ -3,8 +3,8 @@ import base64
 import email
 import hashlib
 import json
+
 from isodate.isoerror import ISO8601Error
-from isodate.isodatetime import parse_datetime
 from Crypto.PublicKey import RSA
 from jose import jws
 
@@ -13,7 +13,7 @@ from django.core.cache import caches
 from django.urls import reverse
 from django.http import QueryDict
 
-from . import convert_to_datatype, convert_post_body_to_dict
+from . import convert_to_datatype, convert_post_body_to_dict, validate_timestamp
 from .etag import get_etag_info
 from ..exceptions import OauthUnauthorized, OauthBadRequest, ParamError, BadRequest
 
@@ -198,7 +198,7 @@ def parse_cors_request(request, r_dict):
 
     # treat these form params as headers
     header_list = ['X-Experience-API-Version', 'Content-Type', 'If-Match', \
-        'If-None-Match', 'Authorization', 'Content-Length']
+        'If-None-Match', 'Authorization', 'Content-Length', 'Last-Modified']
     header_dict = {k:body[k] for k in body if k in header_list}
     r_dict['headers'].update(header_dict)
     if 'If-Match' in r_dict['headers']:
@@ -472,14 +472,14 @@ def get_headers(headers):
     # Get updated header
     if 'HTTP_UPDATED' in headers:
         try:
-            header_dict['updated'] = parse_datetime(
+            header_dict['updated'] = validate_timestamp(
                 headers.pop('HTTP_UPDATED'))
         except (Exception, ISO8601Error):
             raise ParamError(
                 "Updated header was not a valid ISO8601 timestamp")
     elif 'updated' in headers:
         try:
-            header_dict['updated'] = parse_datetime(headers.pop('updated'))
+            header_dict['updated'] = validate_timestamp(headers.pop('updated'))
         except (Exception, ISO8601Error):
             raise ParamError(
                 "Updated header was not a valid ISO8601 timestamp")
@@ -493,8 +493,7 @@ def get_headers(headers):
         # FireFox automatically adds ;charset=foo to the end of headers. This
         # will strip it out
         if ';' in header_dict['CONTENT_TYPE'] and 'boundary' not in header_dict['CONTENT_TYPE']:
-            header_dict['CONTENT_TYPE'] = header_dict['CONTENT_TYPE'].split(';')[
-                0]
+            header_dict['CONTENT_TYPE'] = header_dict['CONTENT_TYPE'].split(';')[0]
 
     # Get etag
     header_dict['ETAG'] = get_etag_info(headers)

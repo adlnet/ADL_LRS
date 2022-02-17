@@ -38,6 +38,7 @@ class AgentProfileManager():
         # If incoming profile is application/json and if a profile didn't
         # already exist with the same agent and profileId
         if created:
+            etag.check_preconditions(request_dict, p, created)
             p.json_profile = post_profile
             p.content_type = "application/json"
             p.etag = etag.create_tag(post_profile)
@@ -73,7 +74,6 @@ class AgentProfileManager():
                 except:
                     profile = ContentFile(str(request_dict['profile']))
 
-            etag.check_preconditions(request_dict, p, created)
             # If it already exists delete it
             if p.profile:
                 try:
@@ -85,7 +85,7 @@ class AgentProfileManager():
         # Profile being PUT is json
         else:
             # (overwrite existing profile data)
-            etag.check_preconditions(request_dict, p, created)
+            etag.parse_datetime(request_dict, p, created)
             the_profile = request_dict['profile']
             p.json_profile = the_profile
             p.content_type = request_dict['headers']['CONTENT_TYPE']

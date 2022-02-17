@@ -40,6 +40,9 @@ class ActivityProfileManager():
         # If incoming profile is application/json and if a profile didn't
         # already exist with the same activityId and profileId
         if created:
+            # xAPI 2.0 Addition:
+            etag.check_preconditions(request_dict, p, created)
+            
             p.json_profile = post_profile
             p.content_type = "application/json"
             p.etag = etag.create_tag(post_profile)
@@ -75,7 +78,6 @@ class ActivityProfileManager():
                 except:
                     profile = ContentFile(str(request_dict['profile']))
 
-            etag.check_preconditions(request_dict, p, created)
             # If a profile already existed with the profileId and activityId
             if not created:
                 if p.profile:

@@ -1,9 +1,12 @@
 import re
-from isodate.isodatetime import parse_datetime
+
 from rfc3987 import parse as iriparse
 from uuid import UUID
 
-from . import convert_to_datatype
+from django.core.exceptions import ValidationError
+from django.utils.timezone import utc
+
+from . import convert_to_datatype, validate_timestamp
 from ..exceptions import ParamError
 
 statement_allowed_fields = ['id', 'actor', 'verb', 'object', 'result', 'stored',
@@ -44,6 +47,10 @@ context_allowed_fields = ['registration', 'instructor', 'team', 'contextActiviti
                           'revision', 'platform', 'language', 'statement', 'extensions']
 
 
+context_agent_allowed_fields = ['objectType', 'agent', 'relevantTypes']
+
+context_group_allowed_fields = ['objectType', 'group', 'relevantTypes']
+
 
 class StatementValidator():
 
@@ -68,6 +75,16 @@ class StatementValidator():
     def validate(self):
         # If list, validate each stmt inside
         if isinstance(self.data, list):
+
+            # First check if list has duplicate stmt IDs.
+            set_ids = set()
+            for st in self.data:
+                if 'id' in st:
+                    if st['id'] in set_ids:
+                        self.return_error("Statement batch contains duplicate IDs")
+                    else:
+                        set_ids.add(st['id'])
+
             for st in self.data:
                 self.validate_statement(st)
             return "All Statements are valid"
@@ -181,7 +198,7 @@ class StatementValidator():
         # is 1.0.0 +
         if 'version' in stmt:
             if isinstance(stmt['version'], str):
-                version_regex = re.compile("^1\.0(\.\d+)?$")
+                version_regex = re.compile("^(1|2)\.0(\.\d+)?$")
                 if not version_regex.match(stmt['version']):
                     self.return_error(
                         "%s is not a supported version" % stmt['version'])
@@ -196,7 +213,7 @@ class StatementValidator():
         if 'timestamp' in stmt:
             timestamp = stmt['timestamp']
             try:
-                parse_datetime(timestamp)
+                validate_timestamp(timestamp)
 
                 # Reject statements that don't comply with ISO 8601 offsets
                 if timestamp.endswith("-00") or timestamp.endswith("-0000") or timestamp.endswith("-00:00"):
@@ -211,7 +228,7 @@ class StatementValidator():
         if 'stored' in stmt:
             stored = stmt['stored']
             try:
-                parse_datetime(stored)
+                validate_timestamp(stored)
             except Exception as e:
                 self.return_error(
                     "Stored error - There was an error while parsing the date from %s -- Error: %s" % (stored, str(e)))
@@ -645,7 +662,7 @@ class StatementValidator():
         if 'timestamp' in substmt:
             timestamp = substmt['timestamp']
             try:
-                parse_datetime(timestamp)
+                validate_timestamp(timestamp)
 
                 # Reject statements that don't comply with ISO 8601 offsets
                 if timestamp.endswith("-00") or timestamp.endswith("-0000") or timestamp.endswith("-00:00"):
@@ -811,6 +828,14 @@ class StatementValidator():
         if 'contextActivities' in context:
             self.validate_context_activities(context['contextActivities'])
 
+        # # If contextAgents given, ensure they are valid contextAgents.
+        if 'contextAgents' in context:
+            self.validate_context_agents(context['contextAgents'])
+
+        # # If contextGroups given, ensure they are valid contextGroups.
+        if 'contextGroups' in context:
+            self.validate_context_groups(context['contextGroups'])
+
         # If extensions, validate
         if 'extensions' in context:
             self.validate_extensions(context['extensions'], 'context extensions')
@@ -833,3 +858,29 @@ class StatementValidator():
             else:
                 self.return_error(
                     "contextActivities is not formatted correctly")
+
+    def validate_context_agents(self, conags):
+
+        self.check_if_list(congrps, "Context Agents")
+        
+        for sub in conags:
+            if sub["objectType"] != "contextAgent":
+                raise ValidationError("[objectType] for Context Agent entries must be 'contextAgent'")
+
+            if not isinstance(sub["relevantTypes"], list):
+                raise ValidationError("[relevantTypes] for Context Agent entries must be a list")
+
+            self.validate_agent(sub["agent"], 'Context agent')
+
+    def validate_context_groups(self, congrps):
+        
+        self.check_if_list(congrps, "Context Groups")
+        
+        for sub in congrps:
+            if sub["objectType"] != "contextGroup":
+                raise ValidationError("[objectType] for Context Group entries must be 'contextGroup'")
+
+            if not isinstance(sub["relevantTypes"], list):
+                raise ValidationError("[relevantTypes] for Context Group entries must be a list")
+
+            self.validate_agent(sub["group"], 'Context group')

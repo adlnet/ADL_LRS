@@ -66,6 +66,7 @@ class ActivityStateManager():
         # already exist with the same agent, stateId, actId, and/or
         # registration
         if created:
+            etag.check_preconditions(request_dict, s, created, False)
             s.json_state = post_state
             s.content_type = "application/json"
             s.etag = etag.create_tag(post_state)
@@ -107,7 +108,6 @@ class ActivityStateManager():
                 except:
                     post_state = ContentFile(str(request_dict['state']))
 
-            etag.check_preconditions(request_dict, s, created, False)
             # If a state already existed with the profileId and activityId
             if not created:
                 if s.state:
