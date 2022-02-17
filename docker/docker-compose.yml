@@ -49,6 +49,8 @@ services:
       - amqp
     networks:
       - public
+    volumes:
+      - ./data/lrs/logs:/opt/lrs/logs
   
   # nginx proxy used to handle LRS traffic
   nginx:
