@@ -1,7 +1,8 @@
 import ast
 import json
 import urllib
-import urlparse
+
+from urllib.parse import parse_qs, urlparse
 
 from datetime import datetime
 from isodate.isodates import parse_date
