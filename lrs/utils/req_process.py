@@ -469,8 +469,7 @@ def agent_profile_get(req_dict):
     else:
         ap = AgentProfileManager(a)
 
-        profile_id = req_dict['params'].get(
-            'profileId', None) if 'params' in req_dict else None
+        profile_id = req_dict['params'].get('profileId', None) if 'params' in req_dict else None
         if profile_id:
             resource = ap.get_profile(profile_id)
             if resource.profile:
