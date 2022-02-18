@@ -66,7 +66,7 @@ class ActivityStateManager():
         # already exist with the same agent, stateId, actId, and/or
         # registration
         if created:
-            etag.check_preconditions(request_dict, s, created, False)
+            etag.check_preconditions(request_dict, s, created, required=False)
             s.json_state = post_state
             s.content_type = "application/json"
             s.etag = etag.create_tag(post_state)
@@ -119,7 +119,7 @@ class ActivityStateManager():
             self.save_non_json_state(s, post_state, request_dict)
         # State being PUT is json
         else:
-            etag.check_preconditions(request_dict, s, created, False)
+            etag.check_preconditions(request_dict, s, created, required=False)
             the_state = request_dict['state']
             s.json_state = the_state
             s.content_type = request_dict['headers']['CONTENT_TYPE']
