@@ -26,6 +26,7 @@ EMAIL_HOST_PASSWORD = config.get('email', 'EMAIL_HOST_PASSWORD')
 EMAIL_USE_SSL = config.getboolean('email', 'EMAIL_USE_SSL')
 EMAIL_USE_TLS = config.getboolean('email', 'EMAIL_USE_TLS')
 
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 SERVER_EMAIL = EMAIL_HOST_USER
 
 DATABASES = {
