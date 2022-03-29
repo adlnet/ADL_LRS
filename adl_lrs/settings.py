@@ -25,6 +25,8 @@ EMAIL_HOST_USER = config.get('email', 'EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = config.get('email', 'EMAIL_HOST_PASSWORD')
 EMAIL_USE_SSL = config.getboolean('email', 'EMAIL_USE_SSL')
 
+SERVER_EMAIL = EMAIL_HOST_USER
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
