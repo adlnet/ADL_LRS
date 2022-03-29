@@ -56,7 +56,7 @@ LANGUAGE_CODE = config.get('preferences', 'LANGUAGE_CODE')
 # The ID, as an integer, of the current site in the django_site database table.
 # This is used so that application data can hook into specific sites and a single database can manage
 # content for multiple sites.
-SITE_ID = 1
+SITE_ID = config.getint('site', 'SITE_ID', fallback=1)
 
 # If you set this to False, Django will make some optimizations so as not
 # to load the internationalization machinery.

@@ -80,4 +80,27 @@ To configure the database used by your LRS, refer to the `/lrs/settings.ini` fil
 ### Setting up SMTP
 With Google as your email provider, simply refer to the `/lrs/settings.ini` file and change the values under the `[email]` header.
 
-With Office 365 or other email providers, additional setup is required.
+With Office 365 or other email providers, be sure to enable TLS and not SSL.
+
+### Setting up a Site Name
+By default, Django projects use a default site name of `example.com` which isn't ideal for a live system.  To use an actual name:
+
+```
+sudo ./open-shell.sh
+```
+
+and then enter your Site info manually through the shell (type and enter each line):
+```
+from django.contrib.sites.models import Site
+site = Site.objects.create(domain='your.domain.com', name='Your Site Name')
+site.save()
+```
+
+Then update your `settings.ini` to change the `SITE_ID` to `2`
+
+```
+[site]
+SITE_ID: 2
+```
+
+Simplifying this process would be a welcome contribution.

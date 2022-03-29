@@ -14,6 +14,9 @@ EMAIL_HOST_PASSWORD: <gmail-password>
 EMAIL_USE_TLS: True
 EMAIL_USE_SSL: False
 
+[site]
+SITE_ID: 1
+
 [debug]
 DEBUG: True
 
