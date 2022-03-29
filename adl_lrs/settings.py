@@ -24,6 +24,7 @@ EMAIL_PORT = config.getint('email', 'EMAIL_PORT')
 EMAIL_HOST_USER = config.get('email', 'EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = config.get('email', 'EMAIL_HOST_PASSWORD')
 EMAIL_USE_SSL = config.getboolean('email', 'EMAIL_USE_SSL')
+EMAIL_USE_TLS = config.getboolean('email', 'EMAIL_USE_TLS')
 
 SERVER_EMAIL = EMAIL_HOST_USER
 
