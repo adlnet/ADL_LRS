@@ -17,6 +17,11 @@ EMAIL_USE_SSL: False
 [site]
 SITE_ID: 1
 
+[recaptcha]
+USE_GOOGLE_RECAPTCHA: False
+GOOGLE_RECAPTCHA_SITE_KEY: some_long_site_key
+GOOGLE_RECAPTCHA_SECRET_KEY: some_long_secret_key
+
 [debug]
 DEBUG: True
 

@@ -1,4 +1,4 @@
-import json
+import json, requests
 import urllib.request, urllib.parse, urllib.error
 
 from django.contrib.auth import logout, login, authenticate
@@ -13,6 +13,9 @@ from django.shortcuts import render
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
 
+from django.contrib.auth.views import PasswordResetView
+from django.contrib import messages
+
 from .forms import ValidatorForm, RegisterForm, RegClientForm, HookRegistrationForm
 from .models import Hook
 
@@ -25,6 +28,51 @@ from lrs.utils.authorization import non_xapi_auth
 from oauth_provider.consts import ACCEPTED, CONSUMER_STATES
 from oauth_provider.models import Consumer, Token
 
+from django.conf import settings
+
+class PasswordResetViewWithRecaptcha(PasswordResetView):
+    """
+    reCAPTCHA validation, found on a Reddit post:
+    https://www.reddit.com/r/django/comments/q1ao3l/here_is_how_you_add_google_recaptcha_to_password/
+    """
+
+    def post(self, request, *args, **kwargs):
+        form = self.get_form()
+
+        if settings.USE_GOOGLE_RECAPTCHA:
+            return self.handle_request_with_recaptcha(request, form)
+        else:
+            return self.handle_request(request, form)
+
+    def handle_request(self, request, form):
+        if form.is_valid():
+            messages.success(request, 'Email Sent')
+            return self.form_valid(form)
+
+        else:
+            messages.error(request, 'Form Invalid')
+            return self.form_invalid(form)	
+
+    def handle_request_with_recaptcha(self, request, form):
+
+        user_recaptcha_response = request.POST.get('g-recaptcha-response')
+        data = {
+            'secret': settings.GOOGLE_RECAPTCHA_SECRET_KEY,
+            'response': user_recaptcha_response
+        }
+        r = requests.post('https://www.google.com/recaptcha/api/siteverify', data=data)
+        result = r.json()
+
+        if result['success']:
+            if form.is_valid():
+                messages.success(request, 'Email Sent')
+                return self.form_valid(form)
+            else:
+                messages.error(request, 'Form Invalid')
+                return self.form_invalid(form)				
+        else:
+            messages.error(request, 'Please verify that you are not a bot')
+            return self.form_invalid(form)
 
 @csrf_protect
 @require_http_methods(["GET"])

@@ -29,6 +29,13 @@ EMAIL_USE_TLS = config.getboolean('email', 'EMAIL_USE_TLS')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 SERVER_EMAIL = EMAIL_HOST_USER
 
+# Google reCAPTCHA Config
+# 
+# Using reCAPTCHA currently requires a Google API key, which is free.  
+USE_GOOGLE_RECAPTCHA = config.getboolean('recaptcha', 'USE_GOOGLE_RECAPTCHA')
+GOOGLE_RECAPTCHA_SITE_KEY = config.get('recaptcha', 'GOOGLE_RECAPTCHA_SITE_KEY')
+GOOGLE_RECAPTCHA_SECRET_KEY = config.get('recaptcha', 'GOOGLE_RECAPTCHA_SECRET_KEY')
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -208,6 +215,7 @@ TEMPLATES = [
                 'django.template.context_processors.static',
                 'django.template.context_processors.tz',
                 'django.contrib.messages.context_processors.messages',
+                "adl_lrs.context_processors.recaptcha_config"
             ],
         },
     },
