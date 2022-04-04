@@ -215,7 +215,7 @@ TEMPLATES = [
                 'django.template.context_processors.static',
                 'django.template.context_processors.tz',
                 'django.contrib.messages.context_processors.messages',
-                "adl_lrs.context_processors"
+                "adl_lrs.context_processors.recaptcha_config"
             ],
         },
     },
