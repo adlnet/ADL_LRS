@@ -44,7 +44,7 @@ urlpatterns = [
 
     # url(r'^reset/password_reset/$', auth_views.PasswordResetView.as_view(), name='reset_password_reset'),
     url(r'reset/password_reset/$', views.PasswordResetViewWithRecaptcha.as_view(), name="reset_password_reset"),
-    url(r'^reset/password_reset/done/$', views.PasswordResetViewWithRecaptcha.as_view(), name='password_reset_done'),
+    url(r'^reset/password_reset/done/$', auth_views.PasswordResetDoneView(), name='password_reset_done'),
     url(r'^reset/(?P<uidb64>[0-9A-Za-z]+)-(?P<token>.+)/$', auth_views.PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
     url(r'^reset/done/$', auth_views.PasswordResetCompleteView.as_view(), name='password_reset_complete'),
 
