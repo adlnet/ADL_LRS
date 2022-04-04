@@ -45,8 +45,13 @@ class PasswordResetViewWithRecaptcha(PasswordResetView):
             return self.handle_request(request, form)
 
     def handle_request(self, request, form):
-        messages.success(request, 'Email Sent')
-        return self.form_valid(form)
+        if form.is_valid():
+            messages.success(request, 'Email Sent')
+            return self.form_valid(form)
+
+        else:
+            messages.error(request, 'Form Invalid')
+            return self.form_invalid(form)	
 
     def handle_request_with_recaptcha(self, request, form):
 
