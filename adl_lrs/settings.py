@@ -33,8 +33,8 @@ SERVER_EMAIL = EMAIL_HOST_USER
 # 
 # Using reCAPTCHA currently requires a Google API key, which is free.  
 USE_GOOGLE_RECAPTCHA = config.getboolean('recaptcha', 'USE_GOOGLE_RECAPTCHA')
-GOOGLE_RECAPTCHA_SITE_KEY = config.get('recaptcha', 'GOOGLE_RECAPTCHA_SITE_KEY')
-GOOGLE_RECAPTCHA_SECRET_KEY = config.get('recaptcha', 'GOOGLE_RECAPTCHA_SECRET_KEY')
+RECAPTCHA_PUBLIC_KEY = config.get('recaptcha', 'RECAPTCHA_PUBLIC_KEY')
+RECAPTCHA_PRIVATE_KEY = config.get('recaptcha', 'RECAPTCHA_PRIVATE_KEY')
 
 DATABASES = {
     'default': {
