@@ -278,6 +278,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'adl_lrs',
+    'captcha',
     'lrs',
     'oauth_provider',
     'django.contrib.admin',

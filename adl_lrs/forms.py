@@ -2,6 +2,8 @@ import json
 from django import forms
 from django.forms import URLField as DefaultUrlField
 from django.core.validators import URLValidator
+from captcha.fields import ReCaptchaField
+from captcha.widgets import ReCaptchaV2Checkbox
 
 
 class URLField(DefaultUrlField):
@@ -22,6 +24,8 @@ class RegisterForm(forms.Form):
                                widget=forms.PasswordInput(render_value=False))
     password2 = forms.CharField(label='Password Again',
                                 widget=forms.PasswordInput(render_value=False))
+
+    captcha = ReCaptchaField(widget=ReCaptchaV2Checkbox)
 
     def clean(self):
         cleaned = super(RegisterForm, self).clean()
