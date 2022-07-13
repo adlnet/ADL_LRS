@@ -20,11 +20,11 @@ class ValidatorForm(forms.Form):
 
 class RegisterForm(forms.Form):
     username = forms.CharField(
-        label='Name'
+        label='Name',
         max_length=200
     )
     email = forms.EmailField(
-        label='Email'
+        label='Email',
         max_length=200
     )
     password = forms.CharField(
