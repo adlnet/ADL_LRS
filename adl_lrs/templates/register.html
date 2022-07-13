@@ -25,22 +25,8 @@
         {% endif %}
           <form class="pure-form pure-form-stacked" action="{% url 'register' %}" method="post">
               {% csrf_token %}
-              <fieldset>
-                <legend>Information required to register for an account:</legend>
-                  {% for field in form %}
-                    {% if field.name == 'username' %}
-                      <label for="{{ field.auto_id }}">Username</label>
-                      <input id="{{ field.auto_id }}" name="{{ field.html_name }}" class="pure-input" type="text" placeholder="Your Username" required>
-                    {% elif field.name == 'email' %}
-                      <label for="{{ field.auto_id }}">{{ field.label }}</label>
-                      <input id="{{ field.auto_id }}" name="{{ field.html_name }}" class="pure-input" type="email" placeholder="Your Email" required>
-                    {% else %}
-                      <label for="{{ field.auto_id }}">{{ field.label }}</label>
-                      <input id="{{ field.auto_id }}" name="{{ field.html_name }}" class="pure-input" type="password" placeholder="Your Password" required>
-                    {% endif %}
-                  {% endfor %}
-                  <button type="submit" class="pure-button pure-button-primary">Sign Up</button>
-              </fieldset>
+              {{ form.as_p }}
+              <button type="submit" class="pure-button pure-button-primary">Sign Up</button>
           </form>
       </div>
       <div class="l-box pure-u-1 pure-u-md-1-3 pure-u-lg-1-3"></div>

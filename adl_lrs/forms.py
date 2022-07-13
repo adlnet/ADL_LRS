@@ -2,7 +2,10 @@ import json
 from django import forms
 from django.forms import URLField as DefaultUrlField
 from django.core.validators import URLValidator
+from captcha.fields import ReCaptchaField
+from captcha.widgets import ReCaptchaV2Checkbox
 
+from django.conf import settings
 
 class URLField(DefaultUrlField):
     myregex = ('(http[s]?:\/\/(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a'
@@ -16,12 +19,28 @@ class ValidatorForm(forms.Form):
 
 
 class RegisterForm(forms.Form):
-    username = forms.CharField(max_length=200, label='Name')
-    email = forms.EmailField(max_length=200, label='Email')
-    password = forms.CharField(label='Password',
-                               widget=forms.PasswordInput(render_value=False))
-    password2 = forms.CharField(label='Password Again',
-                                widget=forms.PasswordInput(render_value=False))
+    username = forms.CharField(
+        label='Name',
+        max_length=200
+    )
+    email = forms.EmailField(
+        label='Email',
+        max_length=200
+    )
+    password = forms.CharField(
+        label='Password',
+        widget=forms.PasswordInput(render_value=False)
+    )
+    password2 = forms.CharField(
+        label='Password Again',
+        widget=forms.PasswordInput(render_value=False)
+    )
+
+    captcha = ReCaptchaField(
+        public_key=settings.RECAPTCHA_PUBLIC_KEY,
+        private_key=settings.RECAPTCHA_PRIVATE_KEY,
+        widget=ReCaptchaV2Checkbox
+    )
 
     def clean(self):
         cleaned = super(RegisterForm, self).clean()

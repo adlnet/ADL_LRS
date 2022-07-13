@@ -57,7 +57,7 @@ class PasswordResetViewWithRecaptcha(PasswordResetView):
 
         user_recaptcha_response = request.POST.get('g-recaptcha-response')
         data = {
-            'secret': settings.GOOGLE_RECAPTCHA_SECRET_KEY,
+            'secret': settings.RECAPTCHA_PRIVATE_KEY,
             'response': user_recaptcha_response
         }
         r = requests.post('https://www.google.com/recaptcha/api/siteverify', data=data)
