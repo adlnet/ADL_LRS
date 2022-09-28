@@ -1,9 +1,10 @@
-Django==3.2.11
+Django==3.2.13
 amqp==5.0.9
 bcoding==1.5
 celery==5.2.3
 django-cors-headers==3.10.1
 django-jsonify==0.3.0
+django-recaptcha==3.0.0
 #importlib==1.0.4 ## no longer needed
 isodate==0.6.1
 oauth2==1.9.0.post1

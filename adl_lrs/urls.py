@@ -22,7 +22,7 @@ urlpatterns = [
 
     # login and logout endpoints
     url(r'^accounts/login/$', auth_views.LoginView.as_view(), name="login"),
-    url(r'^accounts/logout/$', auth_views.LogoutView.as_view(), name="logout"),
+    url(r'^accounts/logout/$', auth_views.LogoutView.as_view(), {'next_page': '/'}, name="logout"),
 
     # non xapi endpoints
     url(r'^hooks/(?P<hook_id>.{36})$', views.hook, name='hook'),
@@ -41,11 +41,10 @@ urlpatterns = [
 
     url(r'^regclient$', views.regclient, name='regclient'),
     url(r'^register$', views.register, name='register'),
-
-    url(r'^reset/password_reset/$', auth_views.PasswordResetView.as_view(), name='reset_password_reset'),
+    
+    url(r'reset/password_reset/$', views.PasswordResetViewWithRecaptcha.as_view(), name="reset_password_reset"),
     url(r'^reset/password_reset/done/$', auth_views.PasswordResetDoneView.as_view(), name='password_reset_done'),
-    url(r'^reset/(?P<uidb64>[0-9A-Za-z_\-]+)/(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,20})/$',
-        auth_views.PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
+    url(r'^reset/(?P<uidb64>[0-9A-Za-z]+)-(?P<token>.+)/$', auth_views.PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
     url(r'^reset/done/$', auth_views.PasswordResetCompleteView.as_view(), name='password_reset_complete'),
 
     url(r'^statementvalidator$', views.stmt_validator, name='stmt_validator'),

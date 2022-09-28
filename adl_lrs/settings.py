@@ -24,6 +24,17 @@ EMAIL_PORT = config.getint('email', 'EMAIL_PORT')
 EMAIL_HOST_USER = config.get('email', 'EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = config.get('email', 'EMAIL_HOST_PASSWORD')
 EMAIL_USE_SSL = config.getboolean('email', 'EMAIL_USE_SSL')
+EMAIL_USE_TLS = config.getboolean('email', 'EMAIL_USE_TLS')
+
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+SERVER_EMAIL = EMAIL_HOST_USER
+
+# Google reCAPTCHA Config
+# 
+# Using reCAPTCHA currently requires a Google API key, which is free.  
+USE_GOOGLE_RECAPTCHA = config.getboolean('recaptcha', 'USE_GOOGLE_RECAPTCHA')
+RECAPTCHA_PUBLIC_KEY = config.get('recaptcha', 'RECAPTCHA_PUBLIC_KEY')
+RECAPTCHA_PRIVATE_KEY = config.get('recaptcha', 'RECAPTCHA_PRIVATE_KEY')
 
 DATABASES = {
     'default': {
@@ -52,7 +63,7 @@ LANGUAGE_CODE = config.get('preferences', 'LANGUAGE_CODE')
 # The ID, as an integer, of the current site in the django_site database table.
 # This is used so that application data can hook into specific sites and a single database can manage
 # content for multiple sites.
-SITE_ID = 1
+SITE_ID = config.getint('site', 'SITE_ID', fallback=1)
 
 # If you set this to False, Django will make some optimizations so as not
 # to load the internationalization machinery.
@@ -204,6 +215,7 @@ TEMPLATES = [
                 'django.template.context_processors.static',
                 'django.template.context_processors.tz',
                 'django.contrib.messages.context_processors.messages',
+                "adl_lrs.context_processors.recaptcha_config"
             ],
         },
     },
@@ -266,6 +278,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'adl_lrs',
+    'captcha',
     'lrs',
     'oauth_provider',
     'django.contrib.admin',
