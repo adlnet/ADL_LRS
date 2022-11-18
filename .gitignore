@@ -14,6 +14,8 @@ lrs/celery.py
 .vscode/
 
 docker/lrs/settings.ini
+docker/settings.ini
+settings.ini
 adl_lrs/settings.ini
 docker/data
 # *.conf

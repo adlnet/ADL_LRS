@@ -4,8 +4,7 @@ services:
   # Database for LRS statements
   postgres:
     restart: always
-    build: 
-      context: postgres
+    image: library/postgres:9.5
     ports:
       - "127.0.0.1:5432:5432"
     container_name: docker_postgres
@@ -15,7 +14,7 @@ services:
       POSTGRES_PASSWORD: lrs_password
     # Persist this data between sessions
     volumes:
-      - ./data/postgres:/var/lib/postgresql/data
+      - ./docker/data/postgres:/var/lib/postgresql/data
     networks:
       - public
 
@@ -40,7 +39,7 @@ services:
   lrs:
     restart: always
     build: 
-      context: lrs
+      context: .
     ports:
       - "127.0.0.1:8000:8000"
     container_name: docker_lrs
@@ -50,13 +49,13 @@ services:
     networks:
       - public
     volumes:
-      - ./data/lrs/logs:/opt/lrs/logs
+      - ./docker/data/lrs/logs:/opt/lrs/logs
   
   # nginx proxy used to handle LRS traffic
   nginx:
     restart: always
     build: 
-      context: nginx
+      context: docker/nginx
       args:
         HOSTNAME: "${HOSTNAME}"
     ports:
@@ -64,8 +63,8 @@ services:
       - "443:443"
     container_name: docker_nginx
     volumes:
-      - ./nginx/letsencrypt:/usr/share/nginx/html
-      - ./certbot/etc:/usr/share/keys
+      - ./docker/nginx/letsencrypt:/usr/share/nginx/html
+      - ./docker/certbot/etc:/usr/share/keys
     links:
       - lrs
     networks:
@@ -77,10 +76,10 @@ services:
     container_name: 'docker_certbot'
     image: certbot/certbot
     volumes:
-      - ./keys:/var/lib/letsencrypt
-      - ./nginx/letsencrypt:/data/letsencrypt
-      - ./certbot/etc:/etc/letsencrypt
-      - ./certbot/log:/var/log/letsencrypt
+      - ./docker/keys:/var/lib/letsencrypt
+      - ./docker/nginx/letsencrypt:/data/letsencrypt
+      - ./docker/certbot/etc:/etc/letsencrypt
+      - ./docker/certbot/log:/var/log/letsencrypt
     depends_on:
       - nginx
     networks:
