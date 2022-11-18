@@ -251,6 +251,7 @@ CORS_EXPOSE_HEADERS = (
     'X-Experience-API-Version',
     'Accept-Language'
 )
+CORS_URLS_REGEX = r"^/(xapi|xAPI)/.*$"
 
 MIDDLEWARE = (
     'corsheaders.middleware.CorsMiddleware',
