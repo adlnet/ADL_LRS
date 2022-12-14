@@ -19,6 +19,18 @@ services:
       - public
 
   # Required for activity metadata
+  redis:
+    restart: always
+    image: redis:7
+    container_name: docker_redis
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - ./docker/data/redis:/data
+    networks:
+      - public
+  
+  # Required for activity metadata
   amqp:
     restart: always
     image: "rabbitmq:3-management"

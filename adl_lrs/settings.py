@@ -253,6 +253,8 @@ CORS_EXPOSE_HEADERS = (
 )
 CORS_URLS_REGEX = r"^/(xapi|xAPI)/.*$"
 
+DEFENDER_REDIS_URL = "redis://redis:6379/0"
+
 MIDDLEWARE = (
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -261,6 +263,7 @@ MIDDLEWARE = (
     'django.contrib.messages.middleware.MessageMiddleware',
     # Uncomment the next line for simple clickjacking protection:
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'defender.middleware.FailedLoginMiddleware',
 )
 
 # Main url router
@@ -285,6 +288,7 @@ INSTALLED_APPS = [
     'django.contrib.admin',
     'jsonify',
     'corsheaders',
+    'defender'
 ]
 
 REQUEST_HANDLER_LOG_DIR = path.join(PROJECT_ROOT, 'logs/django_request.log')
