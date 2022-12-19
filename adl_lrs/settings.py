@@ -128,11 +128,32 @@ STMTS_PER_PAGE = config.getint('preferences', 'STMTS_PER_PAGE')
 ALLOW_EMPTY_HTTP_AUTH = config.getboolean('auth', 'ALLOW_EMPTY_HTTP_AUTH')
 OAUTH_ENABLED = config.getboolean('auth', 'OAUTH_ENABLED')
 
-AUTH_USER_MODEL = "auth.User"
 # OAuth1 callback views
 OAUTH_AUTHORIZE_VIEW = 'oauth_provider.views.authorize_client'
 OAUTH_CALLBACK_VIEW = 'oauth_provider.views.callback_view'
 OAUTH_SIGNATURE_METHODS = ['plaintext', 'hmac-sha1', 'rsa-sha1']
+
+AUTH_USER_MODEL = "auth.User"
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {
+            'min_length': 8,
+        }
+    },
+    {
+        # Blocks passwords that are common words
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        # Blocks passwords that are entirely numeric
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+    {
+        # Blocks passwords that are too similar to the username
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    }
+]
 
 # List STATEMENTS_WRITE and STATEMENTS_READ_MINE first so they get
 # defaulted in oauth2/forms.py
