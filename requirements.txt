@@ -1,4 +1,4 @@
-Django==3.2.16
+Django==3.2.18
 amqp==5.0.9
 bcoding==1.5
 celery==5.2.3
