@@ -29,10 +29,10 @@ As this project is centered around Docker, there's very little setup required on
 1. `git clone https://github.com/adlnet/ADL_LRS`
 1. `cd ADL_LRS/docker`
 1. `cp .env.example .env`
-1. `cp lrs/settings.ini.example lrs/settings.ini`
-1. `sudo ./install-reqs.sh`
-1. `sudo ./init-ssl.sh localhost` (🌟 NEW)
-1. `sudo ./rebuild.sh`
+1. `cp settings.ini.example settings.ini`
+1. `sudo install-reqs.sh`
+1. `sudo init-ssl.sh localhost` (🌟 NEW)
+1. `sudo rebuild.sh`
 
 As an alternative to the last script, you can just do the direct Docker Compose command (`-d` for Detatched and `--build` to create containers):
 ```
@@ -41,7 +41,7 @@ sudo docker-compose up -d --build
 
 Finally, to create an admin user (onyl use once the LRS is available, **which can take awhile!**)
 ```
-sudo ./create-admin.sh
+sudo create-admin.sh
 ```
 
 ### A bit more detail
@@ -53,12 +53,12 @@ To monitor the LRS setup process, you can use:
 ```
 sudo docker logs -f docker_lrs
 ```
-Once complete, the LRS should be visible at `https://localhost`.
+Once complete, the LRS should be visible at `https://localhost:8000`. (Or a different port if you changed the docker-compose file.)
 
 ### Adding an Admin Account
 When the LRS is available (**which can take awhile**), you may wish to create a superuser for the LRS.  This is done by navigating to the root directory of the project and running:
 ```
-sudo ./create-admin.sh
+sudo create-admin.sh
 ```
 This user only needs to be created **once**, as the Postgres container will persist through sessions.
 
