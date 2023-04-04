@@ -73,6 +73,7 @@ def setup_lrs():
     local('./manage.py migrate')
     local('./manage.py makemigrations adl_lrs lrs oauth_provider')
     local('./manage.py migrate')
+    local('./manage.py migrate defender')
     # createsuperuser has been moved to a script to ignore the default values
 
 # def create_admin():

@@ -18,6 +18,7 @@ urlpatterns = [
     url(r'^$', views.home, name="home"),
 
     # admin endpoint
+    url(r'^admin/defender/', admin.site.urls),
     url(r'^admin/', admin.site.urls),
 
     # login and logout endpoints

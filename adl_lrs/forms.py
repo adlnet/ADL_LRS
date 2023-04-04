@@ -4,6 +4,7 @@ from django.forms import URLField as DefaultUrlField
 from django.core.validators import URLValidator
 from captcha.fields import ReCaptchaField
 from captcha.widgets import ReCaptchaV2Checkbox
+from django.contrib.auth.password_validation import validate_password
 
 from django.conf import settings
 
@@ -46,9 +47,19 @@ class RegisterForm(forms.Form):
         cleaned = super(RegisterForm, self).clean()
         p1 = cleaned.get("password")
         p2 = cleaned.get("password2")
+
+        if not isinstance(p1, str):
+            raise forms.ValidationError("Password cannot be empty")
+
+        try:
+            validate_password(p1)
+        except forms.ValidationError as ve:
+            self.add_error("password", ve)
+
         if p1 and p2:
             if p1 == p2:
                 return cleaned
+        
         raise forms.ValidationError("Passwords did not match")
 
 

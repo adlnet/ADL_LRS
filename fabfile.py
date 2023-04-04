@@ -71,6 +71,7 @@ def setup_lrs():
     local('./manage.py migrate')
     local('./manage.py makemigrations adl_lrs lrs oauth_provider')
     local('./manage.py migrate')
+    local('./manage.py migrate defender')
     local('./manage.py createsuperuser')
 
 
