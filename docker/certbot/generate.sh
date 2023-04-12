@@ -1,6 +1,6 @@
 #!/bin/bash
 
-rm -rf ./certbot/etc
+rm -rf ./docker/certbot/etc
 
 docker-compose run certbot \
 	certonly --webroot \
