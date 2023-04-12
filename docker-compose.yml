@@ -71,7 +71,7 @@ services:
       args:
         HOSTNAME: "${HOSTNAME}"
     ports:
-      - "90:90"
+      - "80:80"
       - "443:443"
     container_name: docker_nginx
     volumes:
