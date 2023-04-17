@@ -62,7 +62,7 @@ def validate_body(body, auth, content_type):
         for statement in body:
             server_validate_statement(statement, auth, content_type)
     except ValueError:
-        raise ValueError(f"'id' not iterable within statement: {stmt}, {type(stmt)}), {auth}, {content_type}")
+        raise ValueError(f"'id' not iterable within statement: {statement}, {type(statement)}), {auth}, {content_type}")
         
 def server_validate_statement(stmt, auth, content_type):
     try:
@@ -704,7 +704,7 @@ def activities_get(req_dict):
     try:
         activity_id = req_dict['params']['activityId']
     except KeyError:
-        err_msg = f"Error -- activities - method = {eq_dict['method']}, but activityId parameter is missing"
+        err_msg = f"Error -- activities - method = {req_dict['method']}, but activityId parameter is missing"
         raise ParamError(err_msg)
     else:
         validator.validate_iri(activity_id, "activityId param")
@@ -773,8 +773,7 @@ def agent_profile_post(req_dict):
     agent = req_dict['params']['agent']
     a = Agent.objects.retrieve_or_create(**agent)[0]
     try:
-        p = AgentProfile.objects.get(
-            profile_id=req_dict['params']['profileId'], agent=a)
+        p = AgentProfile.objects.get(profile_id=req_dict['params']['profileId'], agent=a)
         exists = True
     except AgentProfile.DoesNotExist:
         pass

@@ -85,7 +85,7 @@ class AgentProfileManager():
         # Profile being PUT is json
         else:
             # (overwrite existing profile data)
-            etag.parse_datetime(request_dict, p, created)
+            etag.check_preconditions(request_dict, p, created)
             the_profile = request_dict['profile']
             p.json_profile = the_profile
             p.content_type = request_dict['headers']['CONTENT_TYPE']
