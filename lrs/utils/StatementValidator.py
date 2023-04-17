@@ -44,7 +44,8 @@ result_allowed_fields = ['score', 'success',
 score_allowed_fields = ['scaled', 'raw', 'min', 'max']
 
 context_allowed_fields = ['registration', 'instructor', 'team', 'contextActivities',
-                          'revision', 'platform', 'language', 'statement', 'extensions']
+                          'revision', 'platform', 'language', 'statement', 'extensions'
+                          'contextAgents', 'contextGroups']
 
 
 context_agent_allowed_fields = ['objectType', 'agent', 'relevantTypes']
@@ -159,8 +160,8 @@ class StatementValidator():
             try:
                 val = UUID(uuid, version=4)
             except ValueError:
-                self.return_error(
-                    "%s - %s is not a valid UUID" % (field, uuid))
+                self.return_error(f"{field} - {uuid} is not a valid UUID")
+
             return val.hex == uuid
         else:
             self.return_error("%s must be a string type" % field)
@@ -178,8 +179,7 @@ class StatementValidator():
         # Check for fields that aren't in spec
         failed_list = [x for x in list(obj.keys()) if x not in allowed]
         if failed_list:
-            self.return_error("Invalid field(s) found in %s - %s" %
-                              (obj_name, ', '.join(failed_list)))
+            self.return_error(f"Invalid field(s) found in {obj_name} - {', '.join(failed_list)}")
 
     def check_required_fields(self, required, obj, obj_name):
         for field in required:
