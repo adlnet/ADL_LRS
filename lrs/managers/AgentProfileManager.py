@@ -38,7 +38,7 @@ class AgentProfileManager():
         # If incoming profile is application/json and if a profile didn't
         # already exist with the same agent and profileId
         if created:
-            etag.check_preconditions(request_dict, p, created, required=True)
+            etag.check_preconditions(request_dict, p, created, required=False)
             p.json_profile = post_profile
             p.content_type = "application/json"
             p.etag = etag.create_tag(post_profile)
