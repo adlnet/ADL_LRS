@@ -41,7 +41,7 @@ class ActivityProfileManager():
         # already exist with the same activityId and profileId
         if created:
             # xAPI 2.0 Addition:
-            etag.check_preconditions(request_dict, p, created, required=False)
+            etag.check_preconditions(request_dict, p, created, required=True)
             
             p.json_profile = post_profile
             p.content_type = "application/json"
@@ -65,8 +65,10 @@ class ActivityProfileManager():
 
     def put_profile(self, request_dict):
         # Get the profile, or if not already created, create one
-        p, created = ActivityProfile.objects.get_or_create(profile_id=request_dict[
-                                                           'params']['profileId'], activity_id=request_dict['params']['activityId'])
+        p, created = ActivityProfile.objects.get_or_create(
+            profile_id=request_dict['params']['profileId'], 
+            activity_id=request_dict['params']['activityId']
+        )
 
         # Profile being PUT is not json
         if "application/json" not in request_dict['headers']['CONTENT_TYPE']:
@@ -90,7 +92,7 @@ class ActivityProfileManager():
             self.save_non_json_profile(p, created, profile, request_dict)
         # Profile being PUT is json
         else:
-            etag.check_preconditions(request_dict, p, created, required=False)
+            etag.check_preconditions(request_dict, p, created, required=True)
             # If a profile already existed with the profileId and activityId
             # (overwrite existing profile data)
             the_profile = request_dict['profile']
