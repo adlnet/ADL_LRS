@@ -27,46 +27,48 @@ def get_etag_info(headers):
 
 
 def check_preconditions(request, contents, created, required=True):
-    if required:
-        exists = False
-        if not created:
-            exists = True
+    if not required:
+        return
 
-        try:
-            request_etag = request['headers']['ETAG']
-            if not request_etag[IF_MATCH] and not request_etag[IF_NONE_MATCH]:
-                if exists:
-                    raise MissingEtagInfoExists(
-                        "If-Match and If-None-Match headers were missing. One of these headers is required for this request.")
-                raise MissingEtagInfo(
-                    "If-Match and If-None-Match headers were missing. One of these headers is required for this request.")
-        except KeyError:
+    exists = False
+    if not created:
+        exists = True
+
+    try:
+        request_etag = request['headers']['ETAG']
+        if not request_etag[IF_MATCH] and not request_etag[IF_NONE_MATCH]:
             if exists:
                 raise MissingEtagInfoExists(
                     "If-Match and If-None-Match headers were missing. One of these headers is required for this request.")
             raise MissingEtagInfo(
                 "If-Match and If-None-Match headers were missing. One of these headers is required for this request.")
-        else:
-            # If there are both, if none match takes precendence 
-            if request_etag[IF_NONE_MATCH]:
-                # Only check if the content already exists. if it did not
-                # already exist it should pass.
-                if exists:
-                    if request_etag[IF_NONE_MATCH] == "*":
-                        raise EtagPreconditionFail("Resource detected")
-                    else:
-                        if '"%s"' % contents.etag in request_etag[IF_NONE_MATCH]:
-                            raise EtagPreconditionFail("Resource detected")
-            else:
-                if not exists:
-                    contents.delete()
-                    raise EtagPreconditionFail(
-                        "Resource does not exist")
+    except KeyError:
+        if exists:
+            raise MissingEtagInfoExists(
+                "If-Match and If-None-Match headers were missing. One of these headers is required for this request.")
+        raise MissingEtagInfo(
+            "If-Match and If-None-Match headers were missing. One of these headers is required for this request.")
+    else:
+        # If there are both, if none match takes precendence 
+        if request_etag[IF_NONE_MATCH]:
+            # Only check if the content already exists. if it did not
+            # already exist it should pass.
+            if exists:
+                if request_etag[IF_NONE_MATCH] == "*":
+                    raise EtagPreconditionFail("Resource detected")
                 else:
-                    if request_etag[IF_MATCH] != "*":    
-                        if '"%s"' % contents.etag not in request_etag[IF_MATCH]:
-                            raise EtagPreconditionFail(
-                                "No resources matched your etag precondition")
+                    if '"%s"' % contents.etag in request_etag[IF_NONE_MATCH]:
+                        raise EtagPreconditionFail("Resource detected")
+        else:
+            if not exists:
+                contents.delete()
+                raise EtagPreconditionFail(
+                    "Resource does not exist")
+            else:
+                if request_etag[IF_MATCH] != "*":    
+                    if '"%s"' % contents.etag not in request_etag[IF_MATCH]:
+                        raise EtagPreconditionFail(
+                            "No resources matched your etag precondition")
             
 
 

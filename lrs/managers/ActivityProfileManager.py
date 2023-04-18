@@ -34,18 +34,21 @@ class ActivityProfileManager():
 
     def post_profile(self, request_dict):
         # get/create profile
-        p, created = ActivityProfile.objects.get_or_create(activity_id=request_dict['params']['activityId'],
-                                                           profile_id=request_dict['params']['profileId'])
+        p, created = ActivityProfile.objects.get_or_create(
+            activity_id=request_dict['params']['activityId'],
+            profile_id=request_dict['params']['profileId']
+        )
         post_profile = request_dict['profile']
         # If incoming profile is application/json and if a profile didn't
         # already exist with the same activityId and profileId
         if created:
             # xAPI 2.0 Addition:
-            etag.check_preconditions(request_dict, p, created, required=False)
+            etag.check_preconditions(request_dict, p, created, required=True)
             
             p.json_profile = post_profile
             p.content_type = "application/json"
             p.etag = etag.create_tag(post_profile)
+        
         # If incoming profile is application/json and if a profile already
         # existed with the same activityId and profileId
         else:
