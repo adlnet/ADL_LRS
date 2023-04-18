@@ -44,7 +44,7 @@ result_allowed_fields = ['score', 'success',
 score_allowed_fields = ['scaled', 'raw', 'min', 'max']
 
 context_allowed_fields = ['registration', 'instructor', 'team', 'contextActivities',
-                          'revision', 'platform', 'language', 'statement', 'extensions'
+                          'revision', 'platform', 'language', 'statement', 'extensions',
                           'contextAgents', 'contextGroups']
 
 
@@ -436,7 +436,7 @@ class StatementValidator():
         self.validate_iri(verb['id'], 'Verb id')
 
         if verb['id'] == "http://adlnet.gov/expapi/verbs/voided":
-            if stmt_object['objectType']:
+            if stmt_object is not None and stmt_object['objectType']:
                 if stmt_object['objectType'] != "StatementRef":
                     raise ParamError(
                         "Statement with voided verb must have StatementRef as objectType")
@@ -861,7 +861,7 @@ class StatementValidator():
 
     def validate_context_agents(self, conags):
 
-        self.check_if_list(congrps, "Context Agents")
+        self.check_if_list(conags, "Context Agents")
         
         for sub in conags:
             if sub["objectType"] != "contextAgent":
