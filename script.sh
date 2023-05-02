@@ -1,4 +1,4 @@
-# if ADL_LRS directory does exist then pull the latest code or else clone the repo
+# if ADL_LRS directory does exist then, pull the latest code or else clone the repo
 if [ -d "ADL_LRS" ]; then
   echo "Directory ADL_LRS exists."
   cd ADL_TEST
