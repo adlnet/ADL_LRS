@@ -84,19 +84,19 @@ services:
 
   # Certbot for SSL automation
   #
-  certbot:
-    container_name: 'docker_certbot'
-    image: certbot/certbot
-    volumes:
+  #certbot:
+    #container_name: 'docker_certbot'
+    #image: certbot/certbot
+    #volumes:
       - ./docker/keys:/var/lib/letsencrypt
       - ./docker/nginx/letsencrypt:/data/letsencrypt
       - ./docker/certbot/etc:/etc/letsencrypt
       - ./docker/certbot/log:/var/log/letsencrypt
-    depends_on:
+    #depends_on:
       - nginx
-    networks:
+    #networks:
       - public
 
-networks:
-  public: 
-    driver: bridge
+#networks:
+  #public: 
+    #driver: bridge
