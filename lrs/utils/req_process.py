@@ -1,6 +1,9 @@
-import json
-import uuid
 import copy
+import json
+import re
+import unicodedata
+import uuid
+
 from datetime import datetime
 
 from django.http import HttpResponse, HttpResponseNotFound, JsonResponse
@@ -26,6 +29,22 @@ def process_statement(stmt, auth, payload_sha2s):
     if 'version' not in stmt:
         stmt['version'] = settings.XAPI_VERSIONS[0]
 
+    # Check for result -> duration and truncate seconds if needed.
+    if 'result' in stmt:
+        if 'duration' in stmt['result']:
+            stmt_dur = stmt['result']['duration']
+            sec_split = re.findall("\d+(?:\.\d+)?S", stmt_dur)
+            if sec_split:
+                sec_as_str = sec_split[0]
+                sec_as_num = float(sec_as_str.replace('S', ''))
+
+                if not sec_as_num.is_integer():
+                    sec_trunc = round(sec_as_num, 2)
+                else:
+                    sec_trunc = int(sec_as_num)
+
+                stmt['result']['duration'] = unicodedata.normalize("NFKD", stmt_dur.replace(sec_as_str, str(sec_trunc) + 'S'))
+        
     # Convert context activities to list if dict
     if 'context' in stmt and 'contextActivities' in stmt['context']:
         for k, v in list(stmt['context']['contextActivities'].items()):
@@ -450,8 +469,7 @@ def agent_profile_get(req_dict):
     else:
         ap = AgentProfileManager(a)
 
-        profile_id = req_dict['params'].get(
-            'profileId', None) if 'params' in req_dict else None
+        profile_id = req_dict['params'].get('profileId', None) if 'params' in req_dict else None
         if profile_id:
             resource = ap.get_profile(profile_id)
             if resource.profile:

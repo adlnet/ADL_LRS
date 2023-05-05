@@ -38,24 +38,41 @@ class AgentProfileManager():
         # If incoming profile is application/json and if a profile didn't
         # already exist with the same agent and profileId
         if created:
+            etag.check_preconditions(request_dict, p, created, required=False)
             p.json_profile = post_profile
             p.content_type = "application/json"
             p.etag = etag.create_tag(post_profile)
         # If incoming profile is application/json and if a profile already
         # existed with the same agent and profileId
         else:
-            orig_prof = json.loads(p.json_profile)
-            post_profile = json.loads(post_profile)
-            merged = json.dumps(
-                dict(list(orig_prof.items()) + list(post_profile.items())))
-            p.json_profile = merged
-            p.etag = etag.create_tag(merged)
+
+            ##
+            ## 1.0.3 Behaviour
+            ##
+            # orig_prof = json.loads(p.json_profile)
+            # post_profile = json.loads(post_profile)
+            # merged = json.dumps(
+            #     dict(list(orig_prof.items()) + list(post_profile.items())))
+            # p.json_profile = merged
+            # p.etag = etag.create_tag(merged)
+
+
+            ##
+            ## 2.0 Behaviour to mirror PUT behaviour.
+            ##
+            # (overwrite existing profile data)
+            etag.check_preconditions(request_dict, p, created)
+            the_profile = request_dict['profile']
+            p.json_profile = the_profile
+            p.content_type = request_dict['headers']['CONTENT_TYPE']
+            p.etag = etag.create_tag(the_profile)
 
         # Set updated
         if 'updated' in request_dict['headers'] and request_dict['headers']['updated']:
             p.updated = request_dict['headers']['updated']
         else:
             p.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
+        
         p.save()
 
     def put_profile(self, request_dict):
@@ -73,7 +90,6 @@ class AgentProfileManager():
                 except:
                     profile = ContentFile(str(request_dict['profile']))
 
-            etag.check_preconditions(request_dict, p, created)
             # If it already exists delete it
             if p.profile:
                 try:
@@ -96,6 +112,7 @@ class AgentProfileManager():
                 p.updated = request_dict['headers']['updated']
             else:
                 p.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
+            
             p.save()
 
     def get_profile(self, profile_id):

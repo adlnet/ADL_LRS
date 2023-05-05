@@ -82,21 +82,17 @@ class ActivityManager():
                 can_define = True
                 try:
                     # Using get or create inside try for racing issue
-                    self.activity, act_created = Activity.objects.get_or_create(
-                        activity_id=activity_id, authority=self.auth)
+                    self.activity, act_created = Activity.objects.get_or_create(activity_id=activity_id, authority=self.auth)
                 except IntegrityError:
-                    self.activity = Activity.objects.get(
-                        activity_id=activity_id)
+                    self.activity = Activity.objects.get(activity_id=activity_id)
                     act_created = False
             # If activity DNE and cannot define - create activity without auth
             else:
                 try:
                     # Using get or create inside try for racing issue
-                    self.activity, act_created = Activity.objects.get_or_create(
-                        activity_id=activity_id)
+                    self.activity, act_created = Activity.objects.get_or_create(activity_id=activity_id)
                 except IntegrityError:
-                    self.activity = Activity.objects.get(
-                        activity_id=activity_id)
+                    self.activity = Activity.objects.get(activity_id=activity_id)
                     act_created = False
             # If you retrieved an activity that has no auth but user has define
             # permissions, user becomes authority over activity

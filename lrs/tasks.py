@@ -6,6 +6,7 @@ import hmac
 import requests
 import uuid
 from hashlib import sha1
+from datetime import datetime
 
 from celery import shared_task
 from celery.exceptions import SoftTimeLimitExceeded
@@ -14,6 +15,7 @@ from celery.utils.log import get_task_logger
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
+from django.utils.timezone import utc
 
 from .utils.StatementValidator import StatementValidator
 
@@ -66,7 +68,7 @@ def check_statement_hooks(stmt_ids):
                     celery_logger.exception("Could not send statements to hook %s: %s" % (
                         str(config['endpoint']), str(e)))
     except SoftTimeLimitExceeded:
-        celery_logger.exception("Statement hook task timed out")
+        celery_logger.exception("Statement hook task timed out.")
 
 
 def parse_filter(filters, filterQ):
@@ -173,17 +175,23 @@ def set_object_agent_query(q, agent, or_operand):
     if or_operand:
         return q | (Q(actor=agent) | Q(object_agent=agent) | Q(authority=agent) |
                     Q(context_instructor=agent) | Q(context_team=agent) |
+                    Q(context_contextAgents=agent) | Q(context_contextGroups=agent) |
                     Q(object_substatement__actor=agent) |
                     Q(object_substatement__object_agent=agent) |
                     Q(object_substatement__context_instructor=agent) |
-                    Q(object_substatement__context_team=agent))
+                    Q(object_substatement__context_team=agent) | 
+                    Q(object_substatement__context_contextAgents=agent) |
+                    Q(object_substatement__context_contextGroups=agent))
 
     return q & (Q(actor=agent) | Q(object_agent=agent) | Q(authority=agent) |
                 Q(context_instructor=agent) | Q(context_team=agent) |
+                Q(context_contextAgents=agent) | Q(context_contextGroups=agent) |
                 Q(object_substatement__actor=agent) |
                 Q(object_substatement__object_agent=agent) |
                 Q(object_substatement__context_instructor=agent) |
-                Q(object_substatement__context_team=agent))
+                Q(object_substatement__context_team=agent) | 
+                Q(object_substatement__context_contextAgents=agent) |
+                Q(object_substatement__context_contextGroups=agent))
 
 # Retrieve JSON data from ID
 

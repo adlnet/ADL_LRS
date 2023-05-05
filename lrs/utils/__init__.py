@@ -1,13 +1,50 @@
 import ast
 import json
-import urllib.request, urllib.parse, urllib.error
-import urllib.parse
+import urllib
+
+from urllib.parse import parse_qs, urlparse
+
+from datetime import datetime
+from isodate.isodates import parse_date
 from isodate.isodatetime import parse_datetime
+from isodate.isoerror import ISO8601Error
+from isodate.isotime import parse_time
+
 from django.conf import settings
+from django.utils.timezone import utc
 
 from ..exceptions import ParamError
 
 agent_ifps_can_only_be_one = ['mbox', 'mbox_sha1sum', 'openid', 'account']
+
+
+# Exception type to accommodate RFC 3339 timestamp validation.
+class RFC3339Error(ValueError):
+    pass
+
+def validate_timestamp(time_str):
+    time_ret = None
+
+    try:
+        time_ret = parse_datetime(time_str)
+    except (Exception, ISO8601Error):
+        try:
+            date_out, time_out = time_str.split(" ")
+        except ValueError:
+            raise RFC3339Error("Time designators 'T' or ' ' missing. Unable to parse datetime string %r." % time_str)
+        else:
+            date_temp = parse_date(date_out)
+            time_temp = parse_time(time_out)
+            time_ret = datetime.combine(date_temp, time_temp)
+    
+    if time_ret is not None:
+        rfc_ret = None
+        try:
+            rfc_ret = time_ret.replace(tzinfo=utc)
+        except ValueError:
+            rfc_ret = time_ret
+    
+    return rfc_ret
 
 
 def get_agent_ifp(data):
@@ -32,7 +69,7 @@ def get_agent_ifp(data):
 
 def convert_to_datetime_object(timestr):
     try:
-        date_object = parse_datetime(timestr)
+        date_object = validate_timestamp(timestr)
     except ValueError as e:
         raise ParamError(
             "There was an error while parsing the date from %s -- Error: %s" % (timestr, str(e)))

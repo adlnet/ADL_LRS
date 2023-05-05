@@ -43,7 +43,7 @@ class StatementFilterTests(TestCase):
         form = {"username": self.username, "email": self.email,
                 "password": self.password, "password2": self.password}
         self.client.post(reverse(register), form,
-                         X_Experience_API_Version="1.0")
+                         X_Experience_API_Version="2.0")
 
     def tearDown(self):
         settings.SERVER_STMT_LIMIT = 100
