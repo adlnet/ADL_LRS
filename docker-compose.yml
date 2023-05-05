@@ -72,7 +72,7 @@ services:
         HOSTNAME: "${HOSTNAME}"
     ports:
       - "90:90"
-      - "443:443"
+      - "441:443"
     container_name: docker_nginx
     volumes:
       - ./docker/nginx/letsencrypt:/usr/share/nginx/html
