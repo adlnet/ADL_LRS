@@ -13,6 +13,8 @@ federated-analytics.js
 lrs/celery.py
 .vscode/
 
+docker-compose.dev.yml
+
 docker/lrs/settings.ini
 docker/settings.ini
 settings.ini
