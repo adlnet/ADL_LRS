@@ -3,6 +3,7 @@ import json
 import re
 import unicodedata
 import uuid
+import math
 
 from datetime import datetime
 
@@ -39,7 +40,9 @@ def process_statement(stmt, auth, payload_sha2s):
                 sec_as_num = float(sec_as_str.replace('S', ''))
 
                 if not sec_as_num.is_integer():
-                    sec_trunc = round(sec_as_num, 2)
+                    ### xAPI 2.0: Truncation required for comparison, not rounding etc.
+                    # sec_trunc = round(sec_as_num, 2)
+                    sec_trunc = math.floor(sec_as_num * 100) / 100
                 else:
                     sec_trunc = int(sec_as_num)
 
