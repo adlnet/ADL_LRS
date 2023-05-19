@@ -11,6 +11,7 @@ from django.http import HttpResponse, HttpResponseNotFound, JsonResponse
 from django.conf import settings
 from django.utils.timezone import utc
 
+from . import truncate_duration
 from .retrieve_statement import complex_get, parse_more_request
 from ..exceptions import NotFound
 from ..models import Statement, Agent, Activity
@@ -34,20 +35,8 @@ def process_statement(stmt, auth, payload_sha2s):
     if 'result' in stmt:
         if 'duration' in stmt['result']:
             duration = stmt['result']['duration']
-            sec_split = re.findall(r"\d+(?:\.\d+)?S", duration)
-            if sec_split:
-                seconds_str = sec_split[0]
-                seconds = float(seconds_str.replace('S', ''))
-
-                if not seconds.is_integer():
-                    ### xAPI 2.0: Truncation required for comparison, not rounding etc.
-                    # sec_trunc = round(sec_as_num, 2)
-                    seconds_truncated = math.floor(seconds * 100) / 100
-                else:
-                    seconds_truncated = int(seconds)
-
-                stmt['result']['duration'] = unicodedata.normalize("NFKD", duration.replace(seconds_str, str(seconds_truncated) + 'S'))
-        
+            stmt['result']['duration'] = truncate_duration(duration)
+    
     # Convert context activities to list if dict
     if 'context' in stmt and 'contextActivities' in stmt['context']:
         for k, v in list(stmt['context']['contextActivities'].items()):
