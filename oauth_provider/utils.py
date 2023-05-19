@@ -2,6 +2,9 @@ import ast
 import binascii
 import urllib.request, urllib.parse, urllib.error
 import oauth2 as oauth
+
+from typing import Union
+
 from urllib.parse import urlparse, urlunparse
 
 from Crypto.PublicKey import RSA
@@ -149,7 +152,7 @@ def verify_xauth_request(request, oauth_request):
     return user
 
 
-def require_params(oauth_request, parameters=None):
+def require_params(oauth_request, parameters=None) -> Union[HttpResponse, None]:
     """ Ensures that the request contains all required parameters. """
     params = [
         'oauth_consumer_key',
@@ -163,7 +166,7 @@ def require_params(oauth_request, parameters=None):
 
     missing = list(param for param in params if param not in oauth_request)
     if missing:
-        return HttpResponseBadRequest('Missing OAuth parameters: %s' % (', '.join(missing)))
+        return HttpResponseBadRequest('Missing OAuth parameters: ' + (', '.join(missing)))
 
     return None
 

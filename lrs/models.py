@@ -580,14 +580,10 @@ class Statement(models.Model):
     context_platform = models.CharField(max_length=50, blank=True)
     context_language = models.CharField(max_length=50, blank=True)
     context_extensions = JSONField(default=dict, blank=True)
-    context_ca_parent = models.ManyToManyField(
-        Activity, related_name="stmt_context_ca_parent")
-    context_ca_grouping = models.ManyToManyField(
-        Activity, related_name="stmt_context_ca_grouping")
-    context_ca_category = models.ManyToManyField(
-        Activity, related_name="stmt_context_ca_category")
-    context_ca_other = models.ManyToManyField(
-        Activity, related_name="stmt_context_ca_other")
+    context_ca_parent = models.ManyToManyField(Activity, related_name="stmt_context_ca_parent")
+    context_ca_grouping = models.ManyToManyField(Activity, related_name="stmt_context_ca_grouping")
+    context_ca_category = models.ManyToManyField(Activity, related_name="stmt_context_ca_category")
+    context_ca_other = models.ManyToManyField(Activity, related_name="stmt_context_ca_other")
 
     context_contextAgents = JSONField(default=list, blank=True)
     context_contextGroups = JSONField(default=list, blank=True) 

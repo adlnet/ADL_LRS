@@ -89,9 +89,11 @@ class StatementValidator():
             for st in self.data:
                 self.validate_statement(st)
             return "All Statements are valid"
+        
         elif isinstance(self.data, dict):
             self.validate_statement(self.data)
             return "Statement is valid"
+        
         else:
             self.return_error(f"There are no statements to validate, payload: {self.data}")
 
@@ -157,12 +159,12 @@ class StatementValidator():
 
     def validate_uuid(self, uuid, field):
         if isinstance(uuid, str):
+            val = None
             try:
                 val = UUID(uuid, version=4)
+                return val.hex == uuid
             except ValueError:
                 self.return_error(f"{field} - {uuid} is not a valid UUID")
-
-            return val.hex == uuid
         else:
             self.return_error("%s must be a string type" % field)
 

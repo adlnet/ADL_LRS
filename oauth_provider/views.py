@@ -68,6 +68,7 @@ def request_token(request):
 
 @login_required(login_url="/accounts/login")
 def user_authorization(request, form_class=AuthorizeRequestTokenForm):
+    incoming_token = None
     if request.method.lower() == 'get':
         if 'oauth_token' not in request.GET:
             return HttpResponseBadRequest('No request token specified.')
@@ -80,8 +81,7 @@ def user_authorization(request, form_class=AuthorizeRequestTokenForm):
     oauth_request = get_oauth_request(request)
 
     try:
-        request_token = store.get_request_token(
-            request, oauth_request, incoming_token)
+        request_token = store.get_request_token(request, oauth_request, incoming_token)
     except InvalidTokenError:
         return HttpResponse('Invalid request token: %s' % incoming_token, status=401)
 
@@ -172,15 +172,13 @@ def access_token(request):
     if not is_xauth:
 
         # Check Parameters
-        missing_params = require_params(
-            oauth_request, ('oauth_token', 'oauth_verifier'))
+        missing_params = require_params(oauth_request, ('oauth_token', 'oauth_verifier'))
         if missing_params is not None:
             return missing_params
 
         # Check Request Token
         try:
-            request_token = store.get_request_token(
-                request, oauth_request, oauth_request['oauth_token'])
+            request_token = store.get_request_token(request, oauth_request, oauth_request['oauth_token'])
         except InvalidTokenError:
             return HttpResponse('Invalid request token: %s' % oauth_request['oauth_token'], status=401)
         if not request_token.is_approved:
@@ -246,9 +244,11 @@ def access_token(request):
 
 @login_required(login_url="/accounts/login")
 def authorize_client(request, token=None, callback=None, params=None, form=None):
+
+    assert isinstance(token, Token)
     if not form:
-        form = AuthorizeRequestTokenForm(initial={'scopes': token.scope_to_list(),
-                                                  'obj_id': token.pk})
+        form = AuthorizeRequestTokenForm(initial={'scopes': token.scope_to_list(), 'obj_id': token.pk})
+    
     d = {}
     d['oauth_scopes'] = settings.OAUTH_SCOPES
     d['scopes'] = json.dumps(token.scope_to_list())
@@ -257,6 +257,7 @@ def authorize_client(request, token=None, callback=None, params=None, form=None)
     d['description'] = token.consumer.description
     d['params'] = params
     d['oauth_token'] = token.key
+    
     return render(request, 'oauth_authorize_client.html', d)
 
 
@@ -269,10 +270,10 @@ def callback_view(request, **args):
     try:
         oauth_token = Token.objects.get(key=args['oauth_token'])
     except AttributeError as e:
-        send_oauth_error('https' if request.is_secure() else 'http',
-            get_current_site(request).domain, e)
+        return send_oauth_error('https' if request.is_secure() else 'http', get_current_site(request).domain, e)
     except Token.DoesNotExist as e:
-        send_oauth_error('https' if request.is_secure() else 'http',
-            get_current_site(request).domain, e)
+        return send_oauth_error('https' if request.is_secure() else 'http', get_current_site(request).domain, e)
+    
     d['verifier'] = oauth_token.verifier
+    
     return render(request, 'oauth_verifier_pin.html', d)
