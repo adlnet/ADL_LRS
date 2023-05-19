@@ -33,20 +33,20 @@ def process_statement(stmt, auth, payload_sha2s):
     # Check for result -> duration and truncate seconds if needed.
     if 'result' in stmt:
         if 'duration' in stmt['result']:
-            stmt_dur = stmt['result']['duration']
-            sec_split = re.findall("\d+(?:\.\d+)?S", stmt_dur)
+            duration = stmt['result']['duration']
+            sec_split = re.findall(r"\d+(?:\.\d+)?S", duration)
             if sec_split:
-                sec_as_str = sec_split[0]
-                sec_as_num = float(sec_as_str.replace('S', ''))
+                seconds_str = sec_split[0]
+                seconds = float(seconds_str.replace('S', ''))
 
-                if not sec_as_num.is_integer():
+                if not seconds.is_integer():
                     ### xAPI 2.0: Truncation required for comparison, not rounding etc.
                     # sec_trunc = round(sec_as_num, 2)
-                    sec_trunc = math.floor(sec_as_num * 100) / 100
+                    seconds_truncated = math.floor(seconds * 100) / 100
                 else:
-                    sec_trunc = int(sec_as_num)
+                    seconds_truncated = int(seconds)
 
-                stmt['result']['duration'] = unicodedata.normalize("NFKD", stmt_dur.replace(sec_as_str, str(sec_trunc) + 'S'))
+                stmt['result']['duration'] = unicodedata.normalize("NFKD", duration.replace(seconds_str, str(seconds_truncated) + 'S'))
         
     # Convert context activities to list if dict
     if 'context' in stmt and 'contextActivities' in stmt['context']:
@@ -74,6 +74,7 @@ def process_statement(stmt, auth, payload_sha2s):
 
     if stmt['verb'].verb_id == 'http://adlnet.gov/expapi/verbs/voided':
         return st.statement_id, st.object_statementref
+    
     return st.statement_id, None
 
 
@@ -253,16 +254,16 @@ def build_response(stmt_result, single=False):
     # Iterate through each attachment in each statement
     for stmt in statements:
         if 'attachments' in stmt:
-            st_atts = Statement.objects.get(
-                statement_id=stmt['id']).stmt_attachments
-            if st_atts:
-                for att in st_atts.all():
-                    if att.payload:
+            statement_db_obj = Statement.objects.get(statement_id=stmt['id'])
+            attachments = getattr(statement_db_obj, "stmt_attachments", None)
+            if attachments:
+                for attachment in attachments.all():
+                    if attachment.payload:
 
                         sha2s.append({
-                            "sha2": att.canonical_data['sha2'], 
-                            "payload": att.payload,
-                            "contentType": att.canonical_data['contentType']
+                            "sha2": attachment.canonical_data['sha2'], 
+                            "payload": attachment.payload,
+                            "contentType": attachment.canonical_data['contentType']
                         })
 
                         # sha2s.append(
@@ -391,36 +392,32 @@ def activity_profile_get(req_dict):
     # Instantiate ActivityProfile
     ap = ActivityProfileManager()
     # Get profileId and activityId
-    profile_id = req_dict['params'].get(
-        'profileId', None) if 'params' in req_dict else None
-    activity_id = req_dict['params'].get(
-        'activityId', None) if 'params' in req_dict else None
+    profile_id = req_dict['params'].get('profileId', None) if 'params' in req_dict else None
+    activity_id = req_dict['params'].get('activityId', None) if 'params' in req_dict else None
+    since = req_dict['params'].get('since', None) if 'params' in req_dict else None
 
     # If the profileId exists, get the profile and return it in the response
     if profile_id:
         resource = ap.get_profile(profile_id, activity_id)
         if resource.profile:
             try:
-                response = HttpResponse(
-                    resource.profile.read(), content_type=resource.content_type)
+                response = HttpResponse(resource.profile.read(), content_type=resource.content_type)
             except IOError:
-                response = HttpResponseNotFound(
-                    "Error reading file, could not find: %s" % profile_id)
+                response = HttpResponseNotFound("Error reading file, could not find: %s" % profile_id)
         else:
-            response = HttpResponse(
-                resource.json_profile, content_type=resource.content_type)
+            response = HttpResponse(resource.json_profile, content_type=resource.content_type)
+        
         response['ETag'] = '"%s"' % resource.etag
         return response
 
     # Return IDs of profiles stored since profileId was not submitted
-    since = req_dict['params'].get(
-        'since', None) if 'params' in req_dict else None
-    resource = ap.get_profile_ids(activity_id, since)
-    response = JsonResponse([k for k in resource], safe=False)
-    response['since'] = since
+    elif since is not None:
+        resource = ap.get_profile_ids(activity_id, since)
 
-    return response
+        response = JsonResponse([k for k in resource], safe=False)
+        response['since'] = since
 
+        return response
 
 def activity_profile_delete(req_dict):
     # Instantiate activity profile
@@ -473,6 +470,8 @@ def agent_profile_get(req_dict):
         ap = AgentProfileManager(a)
 
         profile_id = req_dict['params'].get('profileId', None) if 'params' in req_dict else None
+        since = req_dict['params'].get('since', None) if 'params' in req_dict else None
+
         if profile_id:
             resource = ap.get_profile(profile_id)
             if resource.profile:
@@ -483,14 +482,13 @@ def agent_profile_get(req_dict):
                     resource.json_profile, content_type=resource.content_type)
             response['ETag'] = '"%s"' % resource.etag
             return response
+        
+        elif since is not None:
 
-        since = req_dict['params'].get(
-            'since', None) if 'params' in req_dict else None
-        resource = ap.get_profile_ids(since)
-        response = JsonResponse([k for k in resource], safe=False)
+            resource = ap.get_profile_ids(since)
+            response = JsonResponse([k for k in resource], safe=False)
 
-    return response
-
+            return response
 
 def agent_profile_delete(req_dict):
     agent = req_dict['params']['agent']

@@ -2,7 +2,7 @@ import ast
 import json
 import urllib
 
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, parse_qsl, urlparse, unquote_plus
 
 from datetime import datetime
 from isodate.isodates import parse_date
@@ -24,6 +24,7 @@ class RFC3339Error(ValueError):
 
 def validate_timestamp(time_str):
     time_ret = None
+    rfc_ret = None
 
     try:
         time_ret = parse_datetime(time_str)
@@ -111,10 +112,10 @@ def convert_post_body_to_dict(incoming_data):
     for p in pairs:
         # this is checked for cors requests
         if p.startswith('content='):
-            if p == urllib.parse.unquote_plus(p):
+            if p == unquote_plus(p):
                 encoded = False
             break
-    qs = urllib.parse.parse_qsl(decoded)
+    qs = parse_qsl(decoded)
     return dict((k, v) for k, v in qs), encoded
 
 

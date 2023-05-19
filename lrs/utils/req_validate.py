@@ -8,7 +8,7 @@ from . import get_agent_ifp, convert_to_datatype,  validate_timestamp, RFC3339Er
 from .authorization import auth
 from .StatementValidator import StatementValidator
 
-from ..models import Statement, Agent, Activity, ActivityState, ActivityProfile, AgentProfile
+from ..models import Statement, Agent, Activity, ActivityState, ActivityProfile, AgentProfile, Verb
 from ..exceptions import ParamConflict, ParamError, Forbidden, BadRequest, IDNotFoundError
 
 
@@ -50,19 +50,24 @@ def validate_void_statement(void_id):
         raise IDNotFoundError(
             "Something went wrong. %s statements found with id %s" % (len(stmts), void_id))
     elif len(stmts) == 1:
-        if stmts[0].voided:
+        target_statement = stmts[0]
+        if target_statement.voided:
             err_msg = "Statement with ID: %s is already voided, cannot unvoid. Please re-issue the statement under a new ID." % void_id
             raise BadRequest(err_msg)
-        if stmts[0].verb.verb_id == "http://adlnet.gov/expapi/verbs/voided":
+        
+        assert isinstance(target_statement.verb, Verb)
+        if target_statement.verb.verb_id == "http://adlnet.gov/expapi/verbs/voided":
             err_msg = "Statement with ID: %s is a voiding statement and cannot be voided." % void_id
             raise BadRequest(err_msg)
 
 def validate_body(body, auth, content_type):
+    statement_being_checked = None
     try:
         for statement in body:
+            statement_being_checked = statement
             server_validate_statement(statement, auth, content_type)
     except ValueError:
-        raise ValueError(f"'id' not iterable within statement: {statement}, {type(statement)}), {auth}, {content_type}")
+        raise ValueError(f"'id' not iterable within statement: {statement_being_checked}, {type(statement_being_checked)}), {auth}, {content_type}")
         
 def server_validate_statement(stmt, auth, content_type):
     try:
@@ -94,8 +99,8 @@ def statements_post(req_dict):
         validator.validate()
     except Exception as e:
         raise BadRequest(str(e))
-    except ParamError as e:
-        raise ParamError(str(e))
+    # except ParamError as e:
+    #     raise ParamError(str(e))
 
     if isinstance(req_dict['body'], dict):
         body = [req_dict['body']]
@@ -149,7 +154,7 @@ def validate_statementId(req_dict):
     mine_only = auth and 'statements_mine_only' in auth
 
     if auth['agent']:
-        if mine_only and st.authority.id != auth['agent'].id:
+        if mine_only and getattr(st.authority, "id", "") != auth['agent'].id:
             err_msg = "Incorrect permissions to view statements"
             raise Forbidden(err_msg)
 
@@ -316,8 +321,8 @@ def statements_put(req_dict):
         validator.validate()
     except Exception as e:
         raise BadRequest(str(e))
-    except ParamError as e:
-        raise ParamError(str(e))
+    # except ParamError as e:
+    #     raise ParamError(str(e))
     validate_body([req_dict['body']], req_dict['auth'], req_dict['headers']['CONTENT_TYPE'])
     return req_dict
 
@@ -398,25 +403,31 @@ def activity_state_post(req_dict):
     agent = req_dict['params']['agent']
     a = Agent.objects.retrieve_or_create(**agent)[0]
     exists = False
+    previous_state = None
     if registration:
         try:
-            s = ActivityState.objects.get(state_id=req_dict['params']['stateId'], agent=a,
-                                          activity_id=req_dict['params']['activityId'], registration_id=req_dict['params']['registration'])
-            exists = True
+            previous_state = ActivityState.objects.get(
+                state_id=req_dict['params']['stateId'], 
+                agent=a,
+                activity_id=req_dict['params']['activityId'], registration_id=req_dict['params']['registration'])
+
         except ActivityState.DoesNotExist:
             pass
     else:
         try:
-            s = ActivityState.objects.get(state_id=req_dict['params']['stateId'], agent=a,
-                                          activity_id=req_dict['params']['activityId'])
-            exists = True
+            previous_state = ActivityState.objects.get(
+                state_id=req_dict['params']['stateId'], 
+                agent=a, 
+                activity_id=req_dict['params']['activityId'])
+            
         except ActivityState.DoesNotExist:
             pass
     
-    if exists and str(s.content_type) != "application/json":
-        raise ParamError("Activity state already exists but is not JSON, cannot update it with new JSON document")
+    if previous_state is not None:
+        if str(previous_state.content_type) != "application/json":
+            raise ParamError("Activity state already exists but is not JSON, cannot update it with new JSON document")
+    
     return req_dict
-
 
 @auth
 def activity_state_put(req_dict):
@@ -598,17 +609,20 @@ def activity_profile_post(req_dict):
         req_dict['profile'] = raw_profile
 
     # Check the content type if the document already exists
-    exists = False
+    previous_profile = None
     try:
-        p = ActivityProfile.objects.get(activity_id=req_dict['params']['activityId'],
-                                        profile_id=req_dict['params']['profileId'])
-        exists = True
+        previous_profile = ActivityProfile.objects.get(
+            activity_id=req_dict['params']['activityId'],
+            profile_id=req_dict['params']['profileId'])
+        
     except ActivityProfile.DoesNotExist:
         pass
 
     # Since document to be POSTed has to be json, so does the existing document
-    if exists and str(p.content_type) != "application/json":
-        raise ParamError("Activity profile already exists but is not JSON, cannot update it with new JSON document")
+    if previous_profile is not None:
+        if str(previous_profile.content_type) != "application/json":
+            raise ParamError("Activity profile already exists but is not JSON, cannot update it with new JSON document")
+    
     return req_dict
 
 
@@ -769,18 +783,19 @@ def agent_profile_post(req_dict):
         req_dict['profile'] = raw_profile
 
     # Check the content type if the document already exists
-    exists = False
     agent = req_dict['params']['agent']
     a = Agent.objects.retrieve_or_create(**agent)[0]
+    
+    previous_profile = None
     try:
-        p = AgentProfile.objects.get(profile_id=req_dict['params']['profileId'], agent=a)
-        exists = True
+        previous_profile = AgentProfile.objects.get(profile_id=req_dict['params']['profileId'], agent=a)
     except AgentProfile.DoesNotExist:
         pass
 
     # Since document to be POSTed has to be json, so does the existing document
-    if exists and str(p.content_type) != "application/json":
+    if (previous_profile is not None) and str(previous_profile.content_type) != "application/json":
         raise ParamError("Agent profile already exists but is not JSON, cannot update it with new JSON document")
+    
     return req_dict
 
 
@@ -903,13 +918,14 @@ def agents_get(req_dict):
         raise ParamError(err_msg)
 
     validator = StatementValidator()
-    if 'agent' in req_dict['params']:
-        try:
-            agent = convert_to_datatype(req_dict['params']['agent'])
-        except Exception:
-            raise ParamError("agent param %s is not valid" % \
-                req_dict['params']['agent'])
-        validator.validate_agent(agent, "Agent param") 
+    
+    agent = None
+    try:
+        agent = convert_to_datatype(req_dict['params']['agent'])
+    except Exception:
+        raise ParamError(f"agent param {req_dict['params']['agent']} is not valid")
+    
+    validator.validate_agent(agent, "Agent param") 
 
     params = get_agent_ifp(agent)
     if not Agent.objects.filter(**params).exists():
