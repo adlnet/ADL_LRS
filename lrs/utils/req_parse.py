@@ -86,6 +86,9 @@ def set_normal_authorization(request, r_dict):
     r_dict['auth']['endpoint'] = get_endpoint(request)
     if auth_params[:6] == 'OAuth ':
         oauth_request = get_oauth_request(request)
+
+        if oauth_request is None:
+            raise ParamError("OAuth config could not be determined from request.")
         
         # Returns HttpBadResponse if missing any params
         missing = require_params(oauth_request)
@@ -94,16 +97,16 @@ def set_normal_authorization(request, r_dict):
 
         check = CheckOauth()
         e_type, error = check.check_access_token(request)
+        
         if e_type and error:
             if e_type == 'auth':
                 raise OauthUnauthorized(error)
             else:
                 raise OauthBadRequest(error)
+        
         # Consumer and token should be clean by now
-        consumer = store.get_consumer(
-            request, oauth_request, oauth_request['oauth_consumer_key'])
-        token = store.get_access_token(
-            request, oauth_request, consumer, oauth_request.get_parameter('oauth_token'))
+        consumer = store.get_consumer(request, oauth_request, oauth_request['oauth_consumer_key'])
+        token = store.get_access_token(request, oauth_request, consumer, oauth_request.get_parameter('oauth_token'))
 
         # Set consumer and token for authentication piece
         r_dict['auth']['oauth_consumer'] = consumer
@@ -386,13 +389,10 @@ def validate_signature(statement_signature_tuple, part):
     algorithm = jws.get_unverified_headers(signature).get('alg', None)
     
     if not algorithm:
-        raise BadRequest(
-            "No signing algorithm found for JWS signature")
+        raise BadRequest("No signing algorithm found for JWS signature")
     
     if algorithm != 'RS256' and algorithm != 'RS384' and algorithm != 'RS512':
-        raise BadRequest(
-            "JWS signature must be calculated with SHA-256, SHA-384 or" \
-            "SHA-512 algorithms")
+        raise BadRequest("JWS signature must be calculated with SHA-256, SHA-384 or SHA-512 algorithms")
     
     x5c = jws.get_unverified_headers(signature).get('x5c', None)
     jws_payload = jws.get_unverified_claims(signature)
@@ -405,8 +405,8 @@ def validate_signature(statement_signature_tuple, part):
     if x5c:
         verified = False
         try:
-            verified = jws.verify(
-                signature, cert_to_key(x5c[0]), algorithm)
+            key = cert_to_key(x5c[0]).exportKey()
+            verified = jws.verify(signature, key, algorithm)
         
         except Exception as e:
             raise BadRequest(f"The JWS is not valid: {str(e)}")
@@ -509,7 +509,6 @@ def get_part_payload(part):
 
 def cert_to_key(cert):
     return RSA.importKey(base64.b64decode(cert))
-
 
 def get_endpoint(request):
     # Used for OAuth scope
