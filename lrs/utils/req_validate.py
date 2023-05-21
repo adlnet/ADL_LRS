@@ -484,44 +484,38 @@ def activity_state_put(req_dict):
 
 @auth
 def activity_state_get(req_dict):
-    rogueparams = set(req_dict['params']) - set(["activityId",
-                                                 "agent", "stateId", "registration", "since"])
+    rogueparams = set(req_dict['params']) - set(["activityId", "agent", "stateId", "registration", "since"])
     if rogueparams:
-        raise ParamError(
-            "The get activity state request contained unexpected parameters: %s" % ", ".join(escape(param) for param in rogueparams))
+        raise ParamError("The get activity state request contained unexpected parameters: %s" % ", ".join(escape(param) for param in rogueparams))
 
     validator = StatementValidator()
     if 'activityId' in req_dict['params']:
         validator.validate_iri(
             req_dict['params']['activityId'], "activityId param for activity state")
     else:
-        err_msg = "Error -- activity_state - method = %s, but activityId parameter is missing." % req_dict[
-            'method']
+        err_msg = f"Error -- activity_state - method = {req_dict['method']}, but activityId parameter is missing."
         raise ParamError(err_msg)
 
     if 'registration' in req_dict['params']:
-        validator.validate_uuid(
-            req_dict['params']['registration'], "registration param for activity state")
+        validator.validate_uuid(req_dict['params']['registration'], "registration param for activity state")
 
     if 'agent' in req_dict['params']:
         try:
             agent = convert_to_datatype(req_dict['params']['agent'])
             req_dict['params']['agent'] = agent
         except Exception:
-            raise ParamError("agent param %s is not valid" % \
-                req_dict['params']['agent'])
+            raise ParamError("agent param %s is not valid" % req_dict['params']['agent'])
+        
         validator.validate_agent(agent, "Agent param") 
     else:
-        err_msg = "Error -- activity_state - method = %s, but agent parameter is missing." % req_dict[
-            'method']
+        err_msg = f"Error -- activity_state - method = {req_dict['method']}, but agent parameter is missing."
         raise ParamError(err_msg)
 
     if 'since' in req_dict['params']:
         try:
             validate_timestamp(req_dict['params']['since'])
         except (Exception, RFC3339Error):
-            raise ParamError(
-                "Since parameter was not a valid RFC3339 timestamp")
+            raise ParamError("Since parameter was not a valid RFC3339 timestamp")
 
     # Extra validation if oauth
     if req_dict['auth']['type'] == 'oauth':
