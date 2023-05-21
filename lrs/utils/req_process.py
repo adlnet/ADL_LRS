@@ -330,16 +330,18 @@ def activity_state_get(req_dict):
     else:
         registration = req_dict['params'].get('registration', None)
         actstate = ActivityStateManager(a)
+        
         # state id means we want only 1 item
         if state_id:
             resource = actstate.get_state(activity_id, registration, state_id)
+            
             if resource.state:
-                response = HttpResponse(
-                    resource.state.read(), content_type=resource.content_type)
+                response = HttpResponse(resource.state.read(), content_type=resource.content_type)
             else:
-                response = HttpResponse(
-                    resource.json_state, content_type=resource.content_type)
-            response['ETag'] = '"%s"' % resource.etag
+                response = HttpResponse(resource.json_state, content_type=resource.content_type)
+            
+            response['ETag'] = f'"{resource.etag}"' 
+        
         # no state id means we want an array of state ids
         else:
             since = req_dict['params'].get('since', None)
