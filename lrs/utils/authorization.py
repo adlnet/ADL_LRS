@@ -102,12 +102,11 @@ def non_xapi_auth(func):
     return inner
 
 def decode_base64_string(message: str) -> str:
-
     try: 
         return base64.b64decode(message).decode("utf-8")
 
     except Exception as e:
-        raise Exception(f"Unable to decode base 64 auth:: Received:: {message}")
+        raise Exception(f"Unable to decode base 64 auth.")
 
 def get_user_from_auth(auth):
     if not auth:
