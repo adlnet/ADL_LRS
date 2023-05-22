@@ -74,8 +74,7 @@ def non_xapi_auth(func):
                     if len(auth) == 2:
                         if auth[0].lower() == 'basic':
 
-                            auth_parsed, success = decode_base64_string(auth[1])
-                            
+                            auth_parsed = decode_base64_string(auth[1])
                             [uname, passwd] = auth_parsed.split(':')
                             
                             if uname and passwd:
@@ -85,10 +84,6 @@ def non_xapi_auth(func):
                                     request.META[
                                         'lrs-user'] = (False, "Unauthorized: Authorization failed, please verify your username and password")
                                 request.META['lrs-user'] = (True, user)
-                            
-                            elif not success
-                                request.META[
-                                    'lrs-user'] = (False, f"Unauthorized: Could not determine base 64 auth from: {auth[1]}")
                             else:
                                 request.META[
                                     'lrs-user'] = (False, "Unauthorized: The format of the HTTP Basic Authorization Header value is incorrect")
@@ -112,10 +107,10 @@ def decode_base64_string(base64_message: str):
         message_bytes = base64.b64decode(base64_bytes + b"====")
         message = message_bytes.decode("utf-8")
 
-        return message, True 
+        return message
     
     except UnicodeDecodeError:
-        return "", False
+        return ""
 
 def get_user_from_auth(auth):
     if not auth:
@@ -206,17 +201,9 @@ def http_auth_helper(request):
         raise Unauthorized("HTTP Basic Authorization Header must start with Basic")
     
     # Currently, only basic http auth is used.
-    auth_parsed, success = decode_base64_string(auth[1])
-    
-    if not success:
-        raise Unauthorized(f"Unable to parse credentials as base 64: {auth[1]}")
-
+    auth_parsed = decode_base64_string(auth[1])
     try:
-        auth_parsed, success = decode_base64_string(auth[1])
-        
-        if not success:
-            raise Unauthorized(f"Unable to parse credentials as base 64: {auth[1]}")
-        
+        auth_parsed = decode_base64_string(auth[1])
         [uname, passwd] = auth_parsed.split(':')
     except Exception as e:
         raise BadRequest(f"Authorization failure: {e}, {auth[1]} was type {type(auth[1])} -> {auth_parsed}")
