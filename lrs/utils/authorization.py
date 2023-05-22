@@ -103,13 +103,9 @@ def non_xapi_auth(func):
 
 def decode_base64_string(base64_message: str):
     try:
-        base64_bytes = base64_message.encode("ascii")
-        message_bytes = base64.b64decode(base64_bytes + b"====")
-        message = message_bytes.decode("ascii")
-
-        return message
+        return base64.b64decode(base64_message).decode("utf-8")
     
-    except UnicodeDecodeError:
+    except Exception:
         return ""
 
 def get_user_from_auth(auth):
@@ -203,7 +199,6 @@ def http_auth_helper(request):
     # Currently, only basic http auth is used.
     auth_parsed = decode_base64_string(auth[1])
     try:
-        auth_parsed = decode_base64_string(auth[1])
         [uname, passwd] = auth_parsed.split(':')
     except Exception as e:
         raise BadRequest(f"Authorization failure: {e}, {auth[1]} was type {type(auth[1])} -> {auth_parsed}")
