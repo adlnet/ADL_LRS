@@ -124,6 +124,7 @@ def parse_post_put_body(request, r_dict):
         # signed statements)
         if 'multipart/mixed' in r_dict['headers']['CONTENT_TYPE']:
             parse_attachment(request, r_dict)
+        
         # If it's any other content-type try parsing it out
         else:
             body_str = request.body.decode("utf-8") if isinstance(request.body, bytes) else request.body
@@ -241,11 +242,9 @@ def parse_attachment(request, r_dict):
     lines = message.splitlines()
     if not lines[0].startswith('Content-Type: multipart/mixed; boundary='):
         if 'boundary' in r_dict['headers']['CONTENT_TYPE']:
-            message = "Content-Type:" + \
-                r_dict['headers']['CONTENT_TYPE'] + "\r\n" + message
+            message = "Content-Type:" + r_dict['headers']['CONTENT_TYPE'] + "\r\n" + message
         else:
-            raise BadRequest(
-                "Could not find the boundary for the multipart content")
+            raise BadRequest("Could not find the boundary for the multipart content")
     
     # end workaround
     msg = email.message_from_string(message)
@@ -262,8 +261,10 @@ def parse_attachment(request, r_dict):
         except Exception:
             raise ParamError("Statement was not valid JSON")
         
+        stmt_sha2s = []
         if isinstance(r_dict['body'], dict):
-            stmt_sha2s = [a['sha2'] for a in r_dict['body']['attachments'] if 'attachments' in r_dict['body']]
+            if "attachments" in r_dict['body']:
+                stmt_sha2s = [a['sha2'] for a in r_dict['body']['attachments']]
         else:
             stmt_sha2s = [a['sha2'] for s in r_dict['body'] if 'attachments' in s for a in s['attachments']]
         
@@ -274,29 +275,26 @@ def parse_attachment(request, r_dict):
             encoding = part.get('Content-Transfer-Encoding', None)
             
             if encoding != "binary":
-                raise BadRequest(
-                    "Each attachment part should have 'binary' as Content-Transfer-Encoding")
+                raise BadRequest("Each attachment part should have 'binary' as Content-Transfer-Encoding")
             
             if 'X-Experience-API-Hash' not in part:
-                raise BadRequest(
-                    "X-Experience-API-Hash header was missing from attachment")
+                raise BadRequest("X-Experience-API-Hash header was missing from attachment")
             
             part_hash = part.get('X-Experience-API-Hash')
             validate_hash(part_hash, part)
             
             part_dict[part_hash] = part
         
-        r_dict['payload_sha2s'] = [
-            p['X-Experience-API-Hash'] for p in msg.get_payload()
-        ]
+        r_dict['payload_sha2s'] = [p['X-Experience-API-Hash'] for p in msg.get_payload()]
 
         if not set(r_dict['payload_sha2s']).issubset(set(stmt_sha2s)):
             raise BadRequest("Not all attachments match with statement payload")
         
         parse_signature_attachments(r_dict, part_dict)
+    
     else:
-        raise ParamError(
-            "This content was not multipart for the multipart request.")
+        raise ParamError("This content was not multipart for the multipart request.")
+    
     # Saves all attachments (including signatures) to memory temporarily
     # for further processing
     temp_save_attachments(msg)
@@ -328,6 +326,7 @@ def parse_signature_attachments(r_dict, part_dict):
                 attachments = statement["attachments"]
                 signatures = [get_signature(a) for a in attachments if is_a_signature(a)]
                 stmt_attachment_pairs.append((statement, signatures))
+    
     else:        
         if 'attachments' in r_dict['body']:
             statement = r_dict["body"]
