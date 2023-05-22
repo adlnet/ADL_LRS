@@ -121,6 +121,7 @@ class ActivityStateManager():
 
         etag.check_modification_conditions(request_dict, state_record, created, required=True)
 
+        # State being PUT is not json
         if "application/json" not in request_dict['headers']['CONTENT_TYPE']:
             try:
                 state_document_contents = ContentFile(state_document_contents.read())
