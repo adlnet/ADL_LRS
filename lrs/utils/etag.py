@@ -31,7 +31,7 @@ def get_etag_info(headers):
 def check_modification_conditions(request, record, created, required=True):
     if not required:
         return
-
+    
     record_already_exists = not created
     etag_headers = request['headers'].get('ETAG')
     
@@ -47,29 +47,53 @@ def check_modification_conditions(request, record, created, required=True):
     missing_if_match = not has_if_match
     missing_if_none_match = not has_if_none_match
 
-    if missing_if_match and missing_if_none_match:
-        raise MissingEtagInfo("If-Match and If-None-Match headers were missing. One of these headers is required for this request.")
+    # There are additional checks for PUT
+    was_put_request = request['method'] == "PUT"
+
+    if was_put_request and record_already_exists and missing_if_match and missing_if_none_match:
+        error_message = f"A document matching your query already exists, but the request did not include ETag headers. " \
+            + f"If you would like to override the document, provide the following header:: " \
+            + f"If-Match: \"{record['etag']}\""
+        
+        raise Conflict(error_message)
     
-    # If there are both, if none match takes precendence 
-    if has_if_none_match:
+    # Check against the If-None-Match condition.
+    #
+    # We should only perform this check if the request has provided a header
+    # here and if the record itself already exists.  
+    # 
+    # If the record doesn't exist, then there's no match and this check is satisfied etc.
+    if has_if_none_match and record_already_exists:
+
         # Only check if the content already exists. if it did not
         # already exist it should pass.
-        if record_already_exists:
-            if etag_headers[IF_NONE_MATCH] == "*":
+        wildcard_provided = etag_headers[IF_NONE_MATCH] == "*"
+        if wildcard_provided:
+            raise EtagPreconditionFail("Resource detected")
+        
+        else:
+            if f'"{record.etag}"' in etag_headers[IF_NONE_MATCH]:
                 raise EtagPreconditionFail("Resource detected")
-            else:
-                if f'"{record.etag}"' in etag_headers[IF_NONE_MATCH]:
-                    raise EtagPreconditionFail("Resource detected")
     
+    # Check against the If-Match condition.
+    #
+    # It's unlikely that this will be checked along with the If-None-Match condition,
+    # but we should still honor that weird use case.
     if has_if_match:
+
+        # We only created a record if the provided query didn't match anything 
         if created:
             record.delete()
             raise EtagPreconditionFail("Resource does not exist")
-        else:
-            if etag_headers[IF_MATCH] != "*":    
-                if f'"{record.etag}"' not in etag_headers[IF_MATCH]:
-                    raise EtagPreconditionFail("No resources matched your etag precondition")
-            
+
+        wildcard_provided = etag_headers[IF_MATCH] == "*"
+        matched_inclusively = f'"{record.etag}"' in etag_headers[IF_MATCH]
+
+        etag_header_matches_record = matched_inclusively or wildcard_provided
+
+        if not etag_header_matches_record:    
+            raise EtagPreconditionFail("No resources matched your etag precondition")
+
 class MissingEtagInfo(BadRequest):
 
     def __init__(self, msg):
