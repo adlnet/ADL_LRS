@@ -73,13 +73,11 @@ def non_xapi_auth(func):
                     auth = auth.split()
                     if len(auth) == 2:
                         if auth[0].lower() == 'basic':
-
-                            auth_parsed = decode_base64_string(auth[1])
-                            [uname, passwd] = auth_parsed.split(':')
+                            
+                            uname, passwd = decode_basic_auth_string(auth[1])
                             
                             if uname and passwd:
-                                user = authenticate(
-                                    username=uname, password=passwd)
+                                user = authenticate(username=uname, password=passwd)
                                 if not user:
                                     request.META[
                                         'lrs-user'] = (False, "Unauthorized: Authorization failed, please verify your username and password")
@@ -101,12 +99,22 @@ def non_xapi_auth(func):
         return func(request, *args, **kwargs)
     return inner
 
-def decode_base64_string(base64_message: str):
-    try:
-        return base64.b64decode(base64_message).decode("utf-8")
+def decode_basic_auth_string(base64_message: str):
     
-    except Exception:
-        return ""
+    try:
+        decoded = base64.b64decode(base64_message).decode("utf-8")
+    except UnicodeDecodeError:
+        raise Unauthorized(f"Could not parse the provided auth string into base 64 -- received: {base64_message}")
+
+    if ":" not in decoded:
+        raise Unauthorized(f"Improper Credential format, encoded value must have the form username:password -- parsed as: {decoded}")
+    
+    parts = decoded.split(":")
+
+    username = parts[0]
+    password = "".join(parts[1:])
+
+    return username, password
 
 def get_user_from_auth(auth):
     if not auth:
@@ -197,7 +205,8 @@ def http_auth_helper(request):
         raise Unauthorized("HTTP Basic Authorization Header must start with Basic")
     
     # Currently, only basic http auth is used.
-    auth_parsed = decode_base64_string(auth[1])
+    username, password = decode_basic_auth_string(auth[1])
+    
     try:
         [uname, passwd] = auth_parsed.split(':')
     except Exception as e:
