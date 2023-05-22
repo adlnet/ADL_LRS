@@ -1,4 +1,5 @@
 import base64
+import binascii
 from functools import wraps
 
 from django.conf import settings
@@ -102,10 +103,14 @@ def non_xapi_auth(func):
 def decode_basic_auth_string(base64_message: str):
     
     try:
-        decoded = base64.b64decode(base64_message).decode("utf-8")
+        decoded = base64.b64decode(base64_message + "==").decode("utf-8")
+    
     except UnicodeDecodeError:
         raise Unauthorized(f"Could not parse the provided auth string into base 64 -- received: {base64_message}")
 
+    except binascii.Error:
+        raise Unauthorized(f"Could not parse the provided auth string into base 64 -- received: {base64_message}")
+    
     if ":" not in decoded:
         raise Unauthorized(f"Improper Credential format, encoded value must have the form username:password -- parsed as: {decoded}")
     
