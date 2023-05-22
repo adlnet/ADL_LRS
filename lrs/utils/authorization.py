@@ -205,12 +205,12 @@ def http_auth_helper(request):
         raise Unauthorized("HTTP Basic Authorization Header must start with Basic")
     
     # Currently, only basic http auth is used.
-    username, password = decode_basic_auth_string(auth[1])
+    uname, passwd = decode_basic_auth_string(auth[1])
     
-    try:
-        [uname, passwd] = auth_parsed.split(':')
-    except Exception as e:
-        raise BadRequest(f"Authorization failure: {e}, {auth[1]} was type {type(auth[1])} -> {auth_parsed}")
+    # try:
+    #     [uname, passwd] = auth_parsed.split(':')
+    # except Exception as e:
+    #     raise BadRequest(f"Authorization failure: {e}, {auth[1]} was type {type(auth[1])} -> {auth_parsed}")
     
     # Sent in empty auth - now allowed when not allowing empty auth
     # in settings
