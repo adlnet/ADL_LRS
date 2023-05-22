@@ -741,7 +741,7 @@ class AttachmentFileSystemStorage(FileSystemStorage):
             # if the file exists, do not call the superclasses _save method
             return name
         # if the file is new, DO call it
-        return super(AttachmentFileSystemStorage, self).save(name, content, max_length=max_length)
+        return super(FileSystemStorage, self).save(name, content, max_length=max_length)
 
 
 class StatementAttachment(models.Model):
