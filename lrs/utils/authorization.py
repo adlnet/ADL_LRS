@@ -101,10 +101,10 @@ def non_xapi_auth(func):
         return func(request, *args, **kwargs)
     return inner
 
-def decode_base64_string(base64_message):
-    base64_bytes = base64_message.encode("ascii")
-    message_bytes = base64.b64decode(base64_bytes)
-    message = message_bytes.decode("ascii")
+def decode_base64_string(base64_message: str):
+    base64_bytes = base64_message.encode("utf-8")
+    message_bytes = base64.b64decode(base64_bytes + b"====")
+    message = message_bytes.decode("utf-8")
 
     return message
 
