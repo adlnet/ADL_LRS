@@ -488,7 +488,7 @@ def agent_profile_delete(req_dict):
         return HttpResponse('', status=204)
     profile_id = req_dict['params']['profileId']
     ap = AgentProfileManager(a)
-    ap.delete_profile(profile_id)
+    ap.delete_profile(req_dict)
 
     return HttpResponse('', status=204)
 

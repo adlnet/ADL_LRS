@@ -178,15 +178,26 @@ class ActivityStateManager():
         state_id = request_dict['params'].get('stateId', None)
         activity_id = request_dict['params']['activityId']
         registration = request_dict['params'].get('registration', None)
+        
         try:
             # Bulk delete if stateId is not in params
             if not state_id:
                 states = self.get_state_set(activity_id, registration, None)
-                for s in states:
-                    s.delete()  # bulk delete skips the custom delete function
+                for state_record in states:
+                    assert isinstance(state_record, ActivityState)
+                    etag.check_modification_conditions(request_dict, state_record, False, required=True)
+
+                for state_record in states:
+                    assert isinstance(state_record, ActivityState)
+                    state_record.delete()
+            
             # Single delete
             else:
-                self.get_state(activity_id, registration, state_id).delete()
+                state_record = self.get_state(activity_id, registration, state_id)
+                etag.check_modification_conditions(request_dict, state_record, False, required=True)
+
+                state_record.delete()
+        
         except ActivityState.DoesNotExist:
             pass
         except IDNotFoundError:

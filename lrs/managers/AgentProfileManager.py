@@ -76,8 +76,10 @@ class AgentProfileManager():
 
     def put_profile(self, request_dict):
         # get/create profile
-        profile_record, created = AgentProfile.objects.get_or_create(profile_id=request_dict['params']['profileId'], agent=self.Agent)
-
+        profile_record, created = AgentProfile.objects.get_or_create(
+            profile_id=request_dict['params']['profileId'], 
+            agent=self.Agent
+        )
         profile_document_contents = request_dict['state']
 
         etag.check_modification_conditions(request_dict, profile_record, created, required=True)
@@ -142,9 +144,16 @@ class AgentProfileManager():
                 'profile_id', flat=True)
         return ids
 
-    def delete_profile(self, profile_id):
+    def delete_profile(self, request_dict):
         try:
-            self.get_profile(profile_id).delete()
+            profile_record = self.get_profile(
+                request_dict['params']['profileId']
+            )
+
+            etag.check_modification_conditions(request_dict, profile_record, False, required=True)
+
+            profile_record.delete()
+
         # we don't want it anyway
         except AgentProfile.DoesNotExist:
             pass
