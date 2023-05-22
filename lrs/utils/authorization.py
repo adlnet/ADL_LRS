@@ -74,7 +74,8 @@ def non_xapi_auth(func):
                     if len(auth) == 2:
                         if auth[0].lower() == 'basic':
 
-                            auth_parsed = decode_base64_string(auth[1])
+                            auth_parsed, success = decode_base64_string(auth[1])
+                            
                             [uname, passwd] = auth_parsed.split(':')
                             
                             if uname and passwd:
@@ -84,6 +85,10 @@ def non_xapi_auth(func):
                                     request.META[
                                         'lrs-user'] = (False, "Unauthorized: Authorization failed, please verify your username and password")
                                 request.META['lrs-user'] = (True, user)
+                            
+                            elif not success
+                                request.META[
+                                    'lrs-user'] = (False, f"Unauthorized: Could not determine base 64 auth from: {auth[1]}")
                             else:
                                 request.META[
                                     'lrs-user'] = (False, "Unauthorized: The format of the HTTP Basic Authorization Header value is incorrect")
@@ -102,11 +107,15 @@ def non_xapi_auth(func):
     return inner
 
 def decode_base64_string(base64_message: str):
-    base64_bytes = base64_message.encode("utf-8")
-    message_bytes = base64.b64decode(base64_bytes + b"====")
-    message = message_bytes.decode("utf-8")
+    try:
+        base64_bytes = base64_message.encode("utf-8")
+        message_bytes = base64.b64decode(base64_bytes + b"====")
+        message = message_bytes.decode("utf-8")
 
-    return message
+        return message, True 
+    
+    except UnicodeDecodeError:
+        return "", False
 
 def get_user_from_auth(auth):
     if not auth:
@@ -185,54 +194,63 @@ def validate_oauth_scope(req_dict):
 
 
 def http_auth_helper(request):
-    if 'Authorization' in request['headers']:
-        auth = request['headers']['Authorization'].split()
-        if len(auth) == 2:
-            if auth[0].lower() == 'basic':
-                # Currently, only basic http auth is used.
-                auth_parsed = decode_base64_string(auth[1])
-                try:
-                    auth_parsed = decode_base64_string(auth[1])
-                    [uname, passwd] = auth_parsed.split(':')
-                except Exception as e:
-                    raise BadRequest(f"Authorization failure: {e}, {auth[1]} was type {type(auth[1])} -> {auth_parsed}")
-                # Sent in empty auth - now allowed when not allowing empty auth
-                # in settings
-                if not uname and not passwd and not settings.ALLOW_EMPTY_HTTP_AUTH:
-                    raise BadRequest('Must supply auth credentials')
-                elif not uname and not passwd and settings.ALLOW_EMPTY_HTTP_AUTH:
-                    request['auth']['user'] = None
-                    request['auth']['agent'] = None
-                elif uname or passwd:
-                    user = authenticate(username=uname, password=passwd)
-                    if user:
-                        # If the user successfully logged in, then add/overwrite
-                        # the user object of this request.
-                        request['auth']['user'] = user
-                        try:
-                            request['auth']['agent'] = user.agent    
-                        except Exception:
-                            # Gets here if for some reason the agent is deleted
-                            agent = Agent.objects.retrieve_or_create(
-                                **{'name': user.username, 'mbox': 'mailto:%s' % user.email, \
-                                'objectType': 'Agent'})[0]
-                            agent.user = user
-                            agent.save()
-                            request['auth']['agent'] = user.agent
-                    else:
-                        raise Unauthorized(
-                            "Authorization failed, please verify your username and password")
-                request['auth']['define'] = True
-            else:
-                raise Unauthorized(
-                    "HTTP Basic Authorization Header must start with Basic")
-        else:
-            raise Unauthorized(
-                "The format of the HTTP Basic Authorization Header value is incorrect")
-    else:
-        # The username/password combo was incorrect, or not provided.
+    if not 'Authorization' in request['headers']:
         raise Unauthorized("Authorization header missing")
 
+    auth = request['headers']['Authorization'].split()
+    
+    if len(auth) != 2:
+        raise Unauthorized("The format of the HTTP Basic Authorization Header value is incorrect")
+
+    if auth[0].lower() != 'basic':
+        raise Unauthorized("HTTP Basic Authorization Header must start with Basic")
+    
+    # Currently, only basic http auth is used.
+    auth_parsed, success = decode_base64_string(auth[1])
+    
+    if not success:
+        raise Unauthorized(f"Unable to parse credentials as base 64: {auth[1]}")
+
+    try:
+        auth_parsed, success = decode_base64_string(auth[1])
+        
+        if not success:
+            raise Unauthorized(f"Unable to parse credentials as base 64: {auth[1]}")
+        
+        [uname, passwd] = auth_parsed.split(':')
+    except Exception as e:
+        raise BadRequest(f"Authorization failure: {e}, {auth[1]} was type {type(auth[1])} -> {auth_parsed}")
+    
+    # Sent in empty auth - now allowed when not allowing empty auth
+    # in settings
+    if not uname and not passwd and not settings.ALLOW_EMPTY_HTTP_AUTH:
+        raise BadRequest('Must supply auth credentials')
+    
+    elif not uname and not passwd and settings.ALLOW_EMPTY_HTTP_AUTH:
+        request['auth']['user'] = None
+        request['auth']['agent'] = None
+    
+    elif uname or passwd:
+        user = authenticate(username=uname, password=passwd)
+        if user:
+            # If the user successfully logged in, then add/overwrite
+            # the user object of this request.
+            request['auth']['user'] = user
+            try:
+                request['auth']['agent'] = user.agent    
+            except Exception:
+                # Gets here if for some reason the agent is deleted
+                agent = Agent.objects.retrieve_or_create(
+                    **{'name': user.username, 'mbox': 'mailto:%s' % user.email, \
+                    'objectType': 'Agent'})[0]
+                agent.user = user
+                agent.save()
+                request['auth']['agent'] = user.agent
+        else:
+            raise Unauthorized(
+                "Authorization failed, please verify your username and password")
+    
+    request['auth']['define'] = True
 
 def oauth_helper(request):
     token = request['auth']['oauth_token']
