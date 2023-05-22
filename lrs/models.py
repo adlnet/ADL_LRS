@@ -736,10 +736,11 @@ class AttachmentFileSystemStorage(FileSystemStorage):
     def get_available_name(self, name, max_length=None):
         return name
 
-    def _save(self, name, content, max_length=None):
+    def save(self, name: str, content, max_length=None):
         if self.exists(name):
             # if the file exists, do not call the superclasses _save method
             return name
+        
         # if the file is new, DO call it
         return super(FileSystemStorage, self).save(name, content, max_length=max_length)
 
