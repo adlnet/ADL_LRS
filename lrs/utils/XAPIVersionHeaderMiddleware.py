@@ -52,7 +52,8 @@ class XAPIVersionHeader(object):
             resp['X-Experience-API-Version'] = settings.XAPI_VERSION
             return resp
 
-
     def process_response(self, request, response):
-        response['X-Experience-API-Version'] = settings.XAPI_VERSION
+        if response is not None:
+            response['X-Experience-API-Version'] = settings.XAPI_VERSION
+        
         return response
