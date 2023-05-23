@@ -51,9 +51,10 @@ def check_modification_conditions(request, record, created, required=True):
     was_put_request = request['method'] == "PUT"
 
     if was_put_request and record_already_exists and missing_if_match and missing_if_none_match:
+        proper_etag = getattr(record, "etag", None);
         error_message = f"A document matching your query already exists, but the request did not include ETag headers. " \
             + f"If you would like to override the document, provide the following header:: " \
-            + f"If-Match: \"{record['etag']}\""
+            + f"If-Match: \"{proper_etag}\""
         
         raise Conflict(error_message)
     
