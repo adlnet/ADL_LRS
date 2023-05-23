@@ -217,14 +217,11 @@ def statements_get(req_dict):
         st = Statement.objects.get(statement_id=req_dict['statementId'])
         stmt_dict = st.to_dict(ret_format=req_dict['params']['format'])
         if req_dict['params']['attachments']:
-            stmt_result, mime_type, content_length = build_response(
-                stmt_dict, True)
-            resp = HttpResponse(stmt_result, content_type=mime_type,
-                                status=200)
+            stmt_result, mime_type, content_length = build_response(stmt_dict, True)
+            resp = HttpResponse(stmt_result, content_type=mime_type, status=200)
         else:
             stmt_result = json.dumps(stmt_dict, sort_keys=False)
-            resp = HttpResponse(
-                stmt_result, content_type=mime_type, status=200)
+            resp = HttpResponse(stmt_result, content_type=mime_type, status=200)
             content_length = len(stmt_result)
     # Complex GET
     else:
@@ -457,6 +454,7 @@ def agent_profile_get(req_dict):
     a = Agent.objects.retrieve(**agent)
     if not a:
         response = HttpResponseNotFound("No agent found for agent profile get")
+        return response
     else:
         ap = AgentProfileManager(a)
 
@@ -471,6 +469,7 @@ def agent_profile_get(req_dict):
             else:
                 response = HttpResponse(
                     resource.json_profile, content_type=resource.content_type)
+            
             response['ETag'] = '"%s"' % resource.etag
             return response
         

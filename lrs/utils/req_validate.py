@@ -409,7 +409,9 @@ def activity_state_post(req_dict):
             previous_state = ActivityState.objects.get(
                 state_id=req_dict['params']['stateId'], 
                 agent=a,
-                activity_id=req_dict['params']['activityId'], registration_id=req_dict['params']['registration'])
+                activity_id=req_dict['params']['activityId'], 
+                registration_id=req_dict['params']['registration']
+            )
 
         except ActivityState.DoesNotExist:
             pass
@@ -845,8 +847,7 @@ def agent_profile_get(req_dict):
             agent = convert_to_datatype(req_dict['params']['agent'])
             req_dict['params']['agent'] = agent
         except Exception:
-            raise ParamError("agent param %s is not valid" % \
-                req_dict['params']['agent'])
+            raise ParamError("agent param %s is not valid" % req_dict['params']['agent'])
         validator.validate_agent(agent, "Agent param") 
     else:
         err_msg = "Error -- agent_profile - method = %s, but agent parameter missing." % req_dict[
@@ -857,12 +858,12 @@ def agent_profile_get(req_dict):
         try:
             validate_timestamp(req_dict['params']['since'])
         except (Exception, RFC3339Error):
-            raise ParamError(
-                "Since parameter was not a valid RFC3339 timestamp")
+            raise ParamError("Since parameter was not a valid RFC3339 timestamp")
 
     # Extra validation if oauth
     if req_dict['auth']['type'] == 'oauth':
         validate_oauth_for_documents(req_dict, "agent profile")
+    
     return req_dict
 
 
