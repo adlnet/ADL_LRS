@@ -85,7 +85,7 @@ class ActivityProfileManager():
             profile_id=request_dict['params']['profileId'], 
             activity_id=request_dict['params']['activityId']
         )
-        profile_document_contents = request_dict['state']
+        profile_document_contents = request_dict['profile']
 
         etag.check_modification_conditions(request_dict, profile_record, created, required=True)
 
