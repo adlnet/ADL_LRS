@@ -464,16 +464,14 @@ def agent_profile_get(req_dict):
         if profile_id:
             resource = ap.get_profile(profile_id)
             if resource.profile:
-                response = HttpResponse(
-                    resource.profile.read(), content_type=resource.content_type)
+                response = HttpResponse(resource.profile.read(), content_type=resource.content_type)
             else:
-                response = HttpResponse(
-                    resource.json_profile, content_type=resource.content_type)
+                response = HttpResponse(resource.json_profile, content_type=resource.content_type)
             
             response['ETag'] = '"%s"' % resource.etag
             return response
         
-        elif since is not None:
+        else:
 
             resource = ap.get_profile_ids(since)
             response = JsonResponse([k for k in resource], safe=False)
@@ -485,7 +483,7 @@ def agent_profile_delete(req_dict):
     a = Agent.objects.retrieve(**agent)
     if not a:
         return HttpResponse('', status=204)
-    profile_id = req_dict['params']['profileId']
+    
     ap = AgentProfileManager(a)
     ap.delete_profile(req_dict)
 
@@ -495,8 +493,7 @@ def agent_profile_delete(req_dict):
 def agents_get(req_dict):
     a = Agent.objects.get(**req_dict['agent_ifp'])
     agent_data = json.dumps(a.to_dict_person(), sort_keys=False)
-    resp = HttpResponse(
-        agent_data, content_type="application/json", status=200)
+    resp = HttpResponse(agent_data, content_type="application/json", status=200)
     resp['Content-Length'] = str(len(agent_data))
 
     return resp
