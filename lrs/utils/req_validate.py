@@ -705,10 +705,7 @@ def activity_profile_delete(req_dict):
 def activities_get(req_dict):
     rogueparams = set(req_dict['params']) - set(["activityId"])
     if rogueparams:
-    
-        raise ParamError(
-            "The get activities request contained unexpected parameters: %s" % ", ".join(escape(param) for param in rogueparams))
-
+        raise ParamError("The get activities request contained unexpected parameters: %s" % ", ".join(escape(param) for param in rogueparams))
 
     validator = StatementValidator()
     try:

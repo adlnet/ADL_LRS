@@ -337,7 +337,9 @@ class Activity(models.Model):
     def return_activity_with_lang_format(self, lang=None, ids_only=False):
         if ids_only:
             return {'id': self.activity_id}
+        
         ret = self.canonical_data
+        
         if 'objectType' not in self.canonical_data:
             ret['objectType'] = 'Activity'
         if 'definition' in self.canonical_data:
