@@ -423,7 +423,10 @@ def activities_get(req_dict):
         return_act = json.dumps(activity_record.return_activity_with_lang_format(['all']), sort_keys=False)
     
     except Activity.DoesNotExist:
-        activity_stub = {"activityId": activity_id}
+        activity_stub = {
+            "id": activity_id,
+            "objectType": "Activity"
+        }
         return_act = json.dumps(activity_stub)
     
     resp = HttpResponse(return_act, content_type="application/json", status=200)
