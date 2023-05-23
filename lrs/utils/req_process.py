@@ -399,11 +399,13 @@ def activity_profile_get(req_dict):
         return response
 
     # Return IDs of profiles stored since profileId was not submitted
-    elif since is not None:
+    else:
         resource = ap.get_profile_ids(activity_id, since)
 
         response = JsonResponse([k for k in resource], safe=False)
-        response['since'] = since
+
+        if since is not None:
+            response['since'] = since
 
         return response
 
