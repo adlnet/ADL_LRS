@@ -8,7 +8,6 @@ import math
 from datetime import datetime
 
 from django.http import HttpResponse, HttpResponseNotFound, JsonResponse
-from django.core.exceptions import ObjectDoesNotExist
 from django.conf import settings
 from django.utils.timezone import utc
 
@@ -423,7 +422,7 @@ def activities_get(req_dict):
         activity_record = Activity.objects.get(activity_id=activity_id, authority__isnull=False)
         return_act = json.dumps(activity_record.return_activity_with_lang_format(['all']), sort_keys=False)
     
-    except ObjectDoesNotExist:
+    except Activity.DoesNotExist:
         activity_stub = {"activityId": activity_id}
         return_act = json.dumps(activity_stub)
     
