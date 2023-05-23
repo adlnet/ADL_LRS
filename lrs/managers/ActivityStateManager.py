@@ -35,8 +35,8 @@ class ActivityStateManager():
 
     def get_record(self, **kwargs) -> Tuple[ActivityState, bool]:
 
-        if "registration" in kwargs and kwargs.get("registration", None) is None:
-            del kwargs["registration"]
+        if "registration_id" in kwargs and kwargs.get("registration_id", None) is None:
+            del kwargs["registration_id"]
 
         return ActivityState.objects.get_or_create(**kwargs)
 
@@ -45,8 +45,7 @@ class ActivityStateManager():
         if registration:
             # Registration and since
             if since:
-                state_set = self.Agent.activitystate_set.filter(
-                    activity_id=activity_id, registration_id=registration, updated__gt=since)
+                state_set = self.Agent.activitystate_set.filter(activity_id=activity_id, registration_id=registration, updated__gt=since)
             # Registration
             else:
                 state_set = self.Agent.activitystate_set.filter(activity_id=activity_id, registration_id=registration)
