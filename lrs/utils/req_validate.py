@@ -716,14 +716,6 @@ def activities_get(req_dict):
     else:
         validator.validate_iri(activity_id, "activityId param")
 
-    # Try to retrieve activity, if DNE then return empty else return activity
-    # info
-    try:
-        Activity.objects.get(activity_id=activity_id, authority__isnull=False)
-    except Activity.DoesNotExist:
-        err_msg = "No activity found with ID %s" % activity_id
-        raise IDNotFoundError(err_msg)
-
     return req_dict
 
 
