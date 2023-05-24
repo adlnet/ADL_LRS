@@ -56,9 +56,15 @@ def process_statement(stmt, auth, payload_sha2s):
 
     # Check if timestamp uses UTC, replace otherwise
     if "timestamp" in stmt:
-        timestamp_original = stmt["timestamp"]
-        timestamp_utc = parse_datetime(timestamp_original).astimezone(tz=timezone.utc).isoformat()
-        stmt["timestamp"] = timestamp_utc
+        rfc_timestamp = stmt["timestamp"]
+        rfc_timestamp_had_space = " " in rfc_timestamp
+
+        iso_timestamp = rfc_timestamp.replace(" ", "T")
+
+        timestamp_utc = parse_datetime(iso_timestamp).astimezone(tz=timezone.utc).isoformat()
+        timestamp_final = timestamp_utc.replace("T", " ") if rfc_timestamp_had_space else timestamp_utc
+
+        stmt["timestamp"] = timestamp_final
 
     # Add stored as timestamp if timestamp not present
     if 'timestamp' not in stmt:
