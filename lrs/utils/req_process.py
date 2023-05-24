@@ -5,6 +5,7 @@ import unicodedata
 import uuid
 import math
 
+from isodate.isodatetime import parse_datetime
 from datetime import datetime, timezone
 
 from django.http import HttpResponse, HttpResponseNotFound, JsonResponse
@@ -56,7 +57,7 @@ def process_statement(stmt, auth, payload_sha2s):
     # Check if timestamp uses UTC, replace otherwise
     if "timestamp" in stmt:
         timestamp_original = stmt["timestamp"]
-        timestamp_utc = datetime.fromisoformat(timestamp_original).astimezone(tz=timezone.utc).isoformat()
+        timestamp_utc = parse_datetime(timestamp_original).astimezone(tz=timezone.utc).isoformat()
         stmt["timestamp"] = timestamp_utc
 
     # Add stored as timestamp if timestamp not present
