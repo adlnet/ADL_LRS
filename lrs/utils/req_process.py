@@ -5,7 +5,7 @@ import unicodedata
 import uuid
 import math
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from django.http import HttpResponse, HttpResponseNotFound, JsonResponse
 from django.conf import settings
@@ -51,7 +51,13 @@ def process_statement(stmt, auth, payload_sha2s):
                     stmt['object']['context']['contextActivities'][k] = [v]
 
     # Add stored time
-    stmt['stored'] = datetime.utcnow().replace(tzinfo=utc).isoformat()
+    stmt['stored'] = datetime.now(utc).utcnow().replace(tzinfo=utc).isoformat()
+
+    # Check if timestamp uses UTC, replace otherwise
+    if "timestamp" in stmt:
+        timestamp_original = stmt["timestamp"]
+        timestamp_utc = datetime.fromisoformat(timestamp_original).astimezone(tz=timezone.utc).isoformat()
+        stmt["timestamp"] = timestamp_utc
 
     # Add stored as timestamp if timestamp not present
     if 'timestamp' not in stmt:
@@ -149,6 +155,7 @@ def process_complex_get(req_dict):
 
 def statements_post(req_dict):
     auth = req_dict['auth']
+    
     # If single statement, put in list
     if isinstance(req_dict['body'], dict):
         body = [req_dict['body']]
@@ -157,13 +164,16 @@ def statements_post(req_dict):
 
     stmt_responses = process_body(body, auth, req_dict.get('payload_sha2s', None))
     stmt_ids = [stmt_tup[0] for stmt_tup in stmt_responses]
-    stmts_to_void = [str(stmt_tup[1])
-                     for stmt_tup in stmt_responses if stmt_tup[1]]
+    stmts_to_void = [str(stmt_tup[1]) for stmt_tup in stmt_responses if stmt_tup[1]]
+    
     check_activity_metadata.delay(stmt_ids)
+    
     if stmts_to_void:
         Statement.objects.filter(statement_id__in=stmts_to_void).update(voided=True)
+    
     if settings.USE_HOOKS:
         check_statement_hooks.delay(stmt_ids)
+    
     return JsonResponse([st for st in stmt_ids], safe=False)
 
 
