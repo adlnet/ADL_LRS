@@ -91,8 +91,7 @@ def server_validate_statement(stmt, auth, content_type):
 @auth
 def statements_post(req_dict):
     if list(req_dict['params'].keys()):
-        raise ParamError("The post statements request contained unexpected parameters: %s" % ", ".join(
-            list(req_dict['params'].keys())))
+        raise ParamError("The post statements request cannot contain query parameters.")
 
     try:
         validator = StatementValidator(req_dict['body'])
@@ -284,8 +283,8 @@ def statements_put(req_dict):
     # Find any unexpected parameters
     rogueparams = set(req_dict['params']) - set(["statementId"])
     if rogueparams:
-        raise ParamError(
-            "The put statements request contained unexpected parameters: %s" % ", ".join(escape(param) for param in rogueparams))
+        rogueparams_str = ", ".join(escape(param) for param in rogueparams)
+        raise ParamError(f"The put statements request cannot contain parameters other than 'statementId' -- found: {rogueparams_str}")
 
     # Statement id can must be supplied in query param. If in the body too, it
     # must be the same

@@ -51,7 +51,8 @@ def parse(request, more_id=None):
     # lookin for weird IE CORS stuff.. it'll be a post with a 'method' url
     # param
     if request.method == 'POST' and 'method' in request.GET:
-        parse_cors_request(request, r_dict)
+        raise BadRequest("Alternate Request Syntax is no longer allowed.")
+    
     # Just parse body for all non IE CORS stuff
     else:
         parse_normal_request(request, r_dict)
