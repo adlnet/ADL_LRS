@@ -307,11 +307,11 @@ def validate_hash(part_hash, part):
             % part_hash)
 
 def is_a_signature(attachment):
-    usage_type = getattr(attachment, 'usageType', None)
+    usage_type = attachment.get('usageType', None)
     return usage_type == "http://adlnet.gov/expapi/attachments/signature"
 
 def get_signature(attachment):
-    return getattr(attachment, "sha2", None)
+    return attachment.get("sha2", None)
 
 def parse_signature_attachments(r_dict, part_dict):
     # Find the signature sha2 from the list attachment values in the
@@ -328,14 +328,14 @@ def parse_signature_attachments(r_dict, part_dict):
                 stmt_attachment_pairs.append((statement, signatures))
     
     else:        
-        if 'attachments' in r_dict['body']:
-            statement = r_dict["body"]
+        statement = r_dict["body"]
+        if 'attachments' in statement:
             attachments = statement["attachments"]
             signatures = [get_signature(a) for a in attachments if is_a_signature(a)]
             stmt_attachment_pairs.append((statement, signatures))
     
-    signed_stmts = [sap for sap in stmt_attachment_pairs if len(sap[1]) >= 1]
-    unsigned_stmts = [sap for sap in stmt_attachment_pairs if len(sap[1]) == 0]
+    signed_stmts = [(statement, signatures) for (statement, signatures) in stmt_attachment_pairs if signatures]
+    unsigned_stmts = [(statement, signatures) for (statement, signatures) in stmt_attachment_pairs if not signatures]
 
     if unsigned_stmts:
         validate_non_signature_attachment(unsigned_stmts, r_dict['payload_sha2s'], part_dict)
@@ -361,9 +361,7 @@ def validate_non_signature_attachment(unsigned_stmts, sha2s_on_request, part_dic
 
 
 def handle_signatures(stmt_tuples, sha2s_on_request, part_dict):
-    for statement_signature_tuple in stmt_tuples:
-
-        _, signatures = statement_signature_tuple
+    for statement, signatures in stmt_tuples:
 
         for sha2 in signatures:           
             # Should be listed in sha2s - sha2s couldn't not match
@@ -376,12 +374,10 @@ def handle_signatures(stmt_tuples, sha2s_on_request, part_dict):
             if part['Content-Type'] != 'application/octet-stream':
                 raise BadRequest("Signature attachment must have Content-Type of 'application/octet-stream'")
             
-            validate_signature(statement_signature_tuple, part)
+            validate_signature(statement, signatures, part)
 
 
-def validate_signature(statement_signature_tuple, part):
-
-    statement, signatures = statement_signature_tuple
+def validate_signature(statement, signatures, part):
 
     sha2_key = signatures[0]
     signature = get_part_payload(part)
