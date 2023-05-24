@@ -210,6 +210,10 @@ def statements_more_get(req_dict):
         else:
             resp = HttpResponse(json.dumps(stmt_result),
                                 content_type=mime_type, status=200)
+##Create the response header
+
+##last modified is in humane readable info like dddec 25, so there is a conversion needed
+#for now iso format andresolved later , update to return statment result
     resp['Content-Length'] = str(content_length)
 
     return resp
@@ -230,13 +234,19 @@ def statements_get(req_dict):
                                 status=200)
         else:
             stmt_result = json.dumps(stmt_dict, sort_keys=False)
+
             resp = HttpResponse(
                 stmt_result, content_type=mime_type, status=200)
+            
+            resp['Last-Modified'] = st['stored']
+
             content_length = len(stmt_result)
     # Complex GET
     else:
         resp, content_length = process_complex_get(req_dict)
-    resp['Content-Length'] = str(content_length)
+        resp['Content-Length'] = str(content_length)
+        
+        resp['Last-Modified'] = st['stored']
 
     return resp
 
