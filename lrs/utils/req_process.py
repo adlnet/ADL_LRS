@@ -151,7 +151,8 @@ def process_complex_get(req_dict):
         if isinstance(stmt_result, dict):
             stmt_result = json.dumps(stmt_result)
         resp = HttpResponse(stmt_result, content_type=mime_type, status=200)
-    return resp, content_length
+    
+    return resp, content_length, stmt_result
 
 
 def statements_post(req_dict):
@@ -210,43 +211,60 @@ def statements_more_get(req_dict):
         else:
             resp = HttpResponse(json.dumps(stmt_result),
                                 content_type=mime_type, status=200)
-##Create the response header
 
-##last modified is in humane readable info like dddec 25, so there is a conversion needed
-#for now iso format andresolved later , update to return statment result
     resp['Content-Length'] = str(content_length)
 
+    latest_stored = datetime.min
+    for stmt in stmt_result["statements"]:
+        stored = datetime.fromisoformat(stmt['stored'])
+        if stored > latest_stored:
+            latest_stored = stored
+                                                            
+    resp['Last-Modified'] = latest_stored.strftime("%a, %d-%b-%Y %H:%M:%S %Z")
+   
     return resp
 
 
 def statements_get(req_dict):
     stmt_result = {}
     mime_type = "application/json"
+    
+    
     # If statementId is in req_dict then it is a single get - can still include attachments
     # or have a different format
     if 'statementId' in req_dict:
         st = Statement.objects.get(statement_id=req_dict['statementId'])
         stmt_dict = st.to_dict(ret_format=req_dict['params']['format'])
+        
+        #Grab datetime where it is stored as string, convert to datetime and format
+        last_stored = datetime.fromisoformat(stmt_dict['stored']).strftime("%a, %d-%b-%Y %H:%M:%S %Z")
+
         if req_dict['params']['attachments']:
-            stmt_result, mime_type, content_length = build_response(
-                stmt_dict, True)
-            resp = HttpResponse(stmt_result, content_type=mime_type,
-                                status=200)
+            stmt_result, mime_type, content_length = build_response(stmt_dict, True)
+            resp = HttpResponse(stmt_result, content_type=mime_type, status=200)
         else:
             stmt_result = json.dumps(stmt_dict, sort_keys=False)
 
-            resp = HttpResponse(
-                stmt_result, content_type=mime_type, status=200)
-            
-            resp['Last-Modified'] = st['stored']
-
+            resp = HttpResponse(stmt_result, content_type=mime_type, status=200)
+  
             content_length = len(stmt_result)
+
+        #stored is in iso we need it like this "Last-Modified: <day-name>, <day> <month> <year> <hour>:<minute>:<second> UTC"
+        resp['Last-Modified'] = last_stored
+    
     # Complex GET
     else:
-        resp, content_length = process_complex_get(req_dict)
-        resp['Content-Length'] = str(content_length)
+        resp, content_length, stmt_result = process_complex_get(req_dict)
         
-        resp['Last-Modified'] = st['stored']
+        latest_stored = datetime.min
+        for stmt in stmt_result["statements"]:
+            stored = datetime.fromisoformat(stmt['stored'])
+            if stored > latest_stored:
+                latest_stored = stored
+
+        resp['Content-Length'] = str(content_length)
+                                                                    
+        resp['Last-Modified'] = latest_stored.strftime("%a, %d-%b-%Y %H:%M:%S %Z")
 
     return resp
 
