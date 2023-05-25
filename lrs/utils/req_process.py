@@ -368,6 +368,7 @@ def activity_state_get(req_dict):
         # state id means we want only 1 item
         if state_id:
             resource = actstate.get_state(activity_id, registration, state_id)
+            #MB Resource is a model of AgentProfile, it has an 'updated' property
             if resource.state:
                 response = HttpResponse(
                     resource.state.read(), content_type=resource.content_type)
@@ -375,12 +376,18 @@ def activity_state_get(req_dict):
                 response = HttpResponse(
                     resource.json_state, content_type=resource.content_type)
             response['ETag'] = '"%s"' % resource.etag
+
+            #MB place our header (updated is saved as a datetime field, so it doesn't need to be pulled from isoformat)
+            response['Last-Modified'] = resource.updated.strftime("%a, %d-%b-%Y %H:%M:%S %Z")
+        
         # no state id means we want an array of state ids
         else:
             since = req_dict['params'].get('since', None)
             resource = actstate.get_state_ids(activity_id, registration, since)
             response = JsonResponse([k for k in resource], safe=False)
-
+            #MB place our header (updated is saved as a datetime field, so it doesn't need to be pulled from isoformat)
+            response['Last-Modified'] = resource.updated.strftime("%a, %d-%b-%Y %H:%M:%S %Z")
+            
     return response
 
 
