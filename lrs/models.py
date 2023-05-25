@@ -762,8 +762,7 @@ class StatementAttachment(models.Model):
 
 class ActivityState(models.Model):
     state_id = models.CharField(max_length=MAX_URL_LENGTH)
-    updated = models.DateTimeField(
-        auto_now_add=True, blank=True, db_index=True)
+    updated = models.DateTimeField(auto_now_add=True, blank=True, db_index=True)
     activity_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
     registration_id = models.CharField(max_length=40, db_index=True)
     content_type = models.CharField(max_length=255, blank=True)

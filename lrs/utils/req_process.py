@@ -385,9 +385,7 @@ def activity_state_get(req_dict):
             since = req_dict['params'].get('since', None)
             resource = actstate.get_state_ids(activity_id, registration, since)
             response = JsonResponse([k for k in resource], safe=False)
-            #MB place our header (updated is saved as a datetime field, so it doesn't need to be pulled from isoformat)
-            response['Last-Modified'] = resource.updated.strftime("%a, %d-%b-%Y %H:%M:%S %Z")
-            
+
     return response
 
 
@@ -442,6 +440,9 @@ def activity_profile_get(req_dict):
             response = HttpResponse(
                 resource.json_profile, content_type=resource.content_type)
         response['ETag'] = '"%s"' % resource.etag
+
+        #MB place our header (updated is saved as a datetime field, so it doesn't need to be pulled from isoformat)
+        response['Last-Modified'] = resource.updated.strftime("%a, %d-%b-%Y %H:%M:%S %Z")
         return response
 
     # Return IDs of profiles stored since profileId was not submitted
@@ -514,6 +515,8 @@ def agent_profile_get(req_dict):
                 response = HttpResponse(
                     resource.json_profile, content_type=resource.content_type)
             response['ETag'] = '"%s"' % resource.etag
+            #place our header (updated is saved as a datetime field, so it doesn't need to be pulled from isoformat)
+            response['Last-Modified'] = resource.updated.strftime("%a, %d-%b-%Y %H:%M:%S %Z")
             return response
 
         since = req_dict['params'].get(
