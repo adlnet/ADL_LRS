@@ -1,7 +1,7 @@
-import datetime
 import json
 
 from typing import Tuple
+from datetime import datetime, timezone
 
 from django.core.files.base import ContentFile
 from django.utils.timezone import utc
@@ -23,7 +23,7 @@ class ActivityStateManager():
         if 'updated' in request_dict['headers'] and request_dict['headers']['updated']:
             s.updated = request_dict['headers']['updated']
         else:
-            s.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
+            s.updated = datetime.utcnow().replace(tzinfo=timezone.utc)
 
         # Go to beginning of file
         state.seek(0)
@@ -103,7 +103,7 @@ class ActivityStateManager():
         if 'updated' in request_dict['headers'] and request_dict['headers']['updated']:
             state_record.updated = request_dict['headers']['updated']
         else:
-            state_record.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
+            state_record.updated = datetime.utcnow().replace(tzinfo=timezone.utc)
         
         state_record.save()
 
@@ -152,7 +152,7 @@ class ActivityStateManager():
             if 'updated' in request_dict['headers'] and request_dict['headers']['updated']:
                 state_record.updated = request_dict['headers']['updated']
             else:
-                state_record.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
+                state_record.updated = datetime.utcnow().replace(tzinfo=timezone.utc)
             
             state_record.save()
 
