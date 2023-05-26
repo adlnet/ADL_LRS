@@ -56,6 +56,7 @@ context_group_allowed_fields = ['objectType', 'group', 'relevantTypes']
 class StatementValidator():
 
     def __init__(self, data=None):
+        """Initialize the validator with the data to be validated."""
         # If incoming is a string, ast eval it (exception will be caught with
         # whatever is calling validator)
         if data:
@@ -73,7 +74,9 @@ class StatementValidator():
             except Exception as e:
                 self.return_error(str(e))
 
+
     def validate(self):
+        """Validate the data passed into the validator."""
         # If list, validate each stmt inside
         if isinstance(self.data, list):
 
@@ -97,10 +100,14 @@ class StatementValidator():
         else:
             self.return_error(f"There are no statements to validate, payload: {self.data}")
 
+
     def return_error(self, err_msg):
+        """Return a ParamError with the given message."""
         raise ParamError(err_msg)
 
+
     def validate_email(self, email):
+        """Validate an email address."""
         if isinstance(email, str):
             if email.startswith("mailto:"):
                 email_re = re.compile("[^@]+@[^@]+\.[^@]+")
@@ -113,7 +120,9 @@ class StatementValidator():
         else:
             self.return_error("mbox value must be a string type")
 
+
     def validate_language(self, lang, field):
+        """Validate a language code."""
         if not isinstance(lang, str):
             self.return_error(
                 "language %s is not valid in %s" % (lang, field))
@@ -128,17 +137,22 @@ class StatementValidator():
                 self.return_error(
                     "language %s is not valid in %s" % (lang, field))        
 
+
     def validate_lang_map(self, lang_map, field):
+        """Validate a language map."""
         for lang in lang_map:
             self.validate_language(lang, field)
 
 
     def validate_dict_values(self, values, field):
+        """Validate that all values in a dict are not null."""
         for v in values:
             if not v:
                 self.return_error("%s contains a null value" % field)
 
+
     def validate_email_sha1sum(self, sha1sum):
+        """Validate an email sha1sum."""
         if isinstance(sha1sum, str):
             sha1sum_re = re.compile('([a-fA-F\d]{40}$)')
             if not sha1sum_re.match(sha1sum):
@@ -147,17 +161,21 @@ class StatementValidator():
         else:
             self.return_error("mbox_sha1sum value must be a string type")
 
+
     def validate_iri(self, iri_value, field):
+        """Validate an IRI."""
         if isinstance(iri_value, str):
             try:
                 iriparse(iri_value, rule='IRI')
-            except Exception:
+            except ValueError:
                 self.return_error(
                     "%s with value %s was not a valid IRI" % (field, iri_value))
         else:
             self.return_error("%s must be a string type" % field)
 
+
     def validate_uuid(self, uuid, field):
+        """Validate a UUID."""
         if isinstance(uuid, str):
             val = None
             try:
@@ -168,27 +186,33 @@ class StatementValidator():
         else:
             self.return_error("%s must be a string type" % field)
 
+
     def check_if_dict(self, obj, field):
+        """Check if an object is a dict."""
         if not isinstance(obj, dict):
             self.return_error(
                 "%s is not a properly formatted dictionary" % field)
 
     def check_if_list(self, obj, field):
+        """Check if an object is a list."""
         if not isinstance(obj, list):
             self.return_error("%s is not a properly formatted array" % field)
 
     def check_allowed_fields(self, allowed, obj, obj_name):
+        """Check if an object has fields that are not allowed."""
         # Check for fields that aren't in spec
         failed_list = [x for x in list(obj.keys()) if x not in allowed]
         if failed_list:
             self.return_error(f"Invalid field(s) found in {obj_name} - {', '.join(failed_list)}")
 
     def check_required_fields(self, required, obj, obj_name):
+        """Check if an object has fields that are required."""
         for field in required:
             if field not in obj:
                 self.return_error("%s is missing in %s" % (field, obj_name))
 
     def validate_statement(self, stmt):
+        """Validate a statement."""
         # Ensure dict was submitted as stmt and check allowed and required
         # fields
         self.check_if_dict(stmt, "Statement")
@@ -266,6 +290,7 @@ class StatementValidator():
             self.validate_attachments(stmt['attachments'])
 
     def validate_authority_group(self, authority):
+        """Validate a group representing an authority."""
         if len(authority['member']) != 2:
             self.return_error(
                 "Groups representing authorities must only contain 2 members")
@@ -275,6 +300,7 @@ class StatementValidator():
                 "Groups representing authorities must not contain an inverse functional identifier")
 
     def validate_attachments(self, attachments):
+        """Validate attachments."""
         # Ensure attachments is a list
         self.check_if_list(attachments, "Attachments")
 
@@ -324,6 +350,7 @@ class StatementValidator():
                     list(attach['description'].keys()), "attachment description")
 
     def validate_extensions(self, extensions, field):
+        """Validate extensions."""
         # Ensure incoming extensions is a dict
         self.check_if_dict(extensions, "%s extensions" % field)
 
@@ -332,6 +359,7 @@ class StatementValidator():
             self.validate_iri(k, field)
 
     def validate_agent(self, agent, placement):
+        """Validate an agent."""
         # Ensure incoming agent is a dict and check allowed fields
         self.check_if_dict(agent, "Agent in %s" % placement)
         self.check_allowed_fields(agent_allowed_fields, agent, "Agent/Group")
@@ -388,6 +416,7 @@ class StatementValidator():
                     self.validate_members(agent)
 
     def validate_members(self, agent):
+        """Validate members of a group."""
         # Ensure member list is array
         members = agent['member']
         self.check_if_list(members, "Members")
@@ -403,6 +432,7 @@ class StatementValidator():
             self.validate_agent(agent, 'member')
 
     def validate_ifi(self, ifis, ifi_value):
+        """Validate an inverse functional identifier."""
         # Validate each IFI accordingly
         if ifis == 'mbox':
             self.validate_email(ifi_value)
@@ -414,6 +444,7 @@ class StatementValidator():
             self.validate_account(ifi_value)
 
     def validate_account(self, account):
+        """Validate an account."""
         # Ensure incoming account is a dict and check allowed and required
         # fields
         self.check_if_dict(account, "Account")
@@ -428,6 +459,7 @@ class StatementValidator():
             self.return_error("account name must be a string")
 
     def validate_verb(self, verb, stmt_object=None):
+        """Validate a verb."""
         # Ensure incoming verb is a dict and check allowed fields
         self.check_if_dict(verb, "Verb")
         self.check_allowed_fields(verb_allowed_fields, verb, "Verb")
@@ -453,6 +485,7 @@ class StatementValidator():
             self.validate_dict_values(list(verb['display'].values()), "verb display")
 
     def validate_object(self, stmt_object):
+        """Validate an object."""
         # Ensure incoming object is a dict
         self.check_if_dict(stmt_object, "Object")
 
@@ -471,6 +504,7 @@ class StatementValidator():
                 "The objectType in the statement's object is not valid - %s" % stmt_object['objectType'])
 
     def validate_statementref(self, ref):
+        """Validate a StatementRef."""
         # Ensure incoming StatementRef is a dictionary an check allowed and
         # required fields
         self.check_if_dict(ref, "StatementRef")
@@ -487,6 +521,7 @@ class StatementValidator():
         self.validate_uuid(ref['id'], 'StatementRef id')
 
     def validate_activity(self, activity):
+        """Validate an activity."""
         # Ensure incoming activity is a dict and check allowed fields
         self.check_if_dict(activity, "Activity")
         self.check_allowed_fields(
@@ -504,6 +539,7 @@ class StatementValidator():
             self.validate_activity_definition(activity['definition'])
 
     def validate_activity_definition(self, definition):
+        """Validate an activity definition."""
         # Ensure incoming def is a dict and check allowed fields
         self.check_if_dict(definition, "Activity definition")
 
@@ -568,6 +604,7 @@ class StatementValidator():
                 definition['extensions'], 'activity definition extensions')
 
     def check_other_interaction_component_fields(self, allowed, definition):
+        """Check if other interaction component fields are included when they shouldn't be."""
         interaction_components = set(
             ["choices", "scale", "source", "target", "steps"])
         keys = set(definition.keys())
@@ -582,6 +619,7 @@ class StatementValidator():
         # not_allowed = any(x in keys for x in interaction_components if x not in allowed)
 
     def validate_interaction_types(self, interactionType, definition):
+        """Validate interaction types."""
         if interactionType == "choice" or interactionType == "sequencing":
             # If choices included, ensure it is an array and validate it
             if 'choices' in definition:
@@ -623,15 +661,16 @@ class StatementValidator():
                 self.validate_interaction_activities(steps, 'steps')
 
     def validate_interaction_activities(self, activities, field):
+        """Validate interaction activities."""
         id_list = []
         for act in activities:
             # Ensure each interaction activity is a dict and check allowed
             # fields
-            self.check_if_dict(act, "%s interaction component" % field)
+            self.check_if_dict(act, f"{field} interaction component")
             self.check_allowed_fields(
-                int_act_fields, act, "Activity definition %s" % field)
+                int_act_fields, act, f"Activity definition {field}")
             self.check_required_fields(
-                int_act_fields, act, "Activity definition %s" % field)
+                int_act_fields, act, f"Activity definition {field}")
 
             # Ensure id value is string
             if not isinstance(act['id'], str):
@@ -642,17 +681,19 @@ class StatementValidator():
             if 'description' in act:
                 # Ensure description is a dict (language map)
                 self.check_if_dict(
-                    act['description'], "%s interaction component description" % field)
+                    act['description'], f"{field} interaction component description")
                 self.validate_lang_map(list(act['description'].keys(
-                )), "%s interaction component description" % field)
+                )), f"{field} interaction component description")
 
         # Check and make sure all ids being listed are unique
         dups = set([i for i in id_list if id_list.count(i) > 1])
         if dups:
             self.return_error(
-                "Interaction activities shared the same id(s) (%s) which is not allowed" % ' '.join(dups))
+                f"Interaction activities shared the same id(s)\
+                    ({' '.join(dups)}) which is not allowed")
 
     def validate_substatement(self, substmt):
+        """Validate substatement."""
         # Ensure incoming substmt is a dict and check allowed and required
         # fields
         self.check_if_dict(substmt, "SubStatement")
@@ -669,11 +710,15 @@ class StatementValidator():
                 # Reject statements that don't comply with ISO 8601 offsets
                 if timestamp.endswith("-00") or timestamp.endswith("-0000") or timestamp.endswith("-00:00"):
                     self.return_error(
-                        "Timestamp error - Substatement Timestamp Illegal offset (-00, -0000, or -00:00) %s" % timestamp)
+                        f"Timestamp error\
+                            - Substatement Timestamp Illegal offset (-00, -0000, or -00:00)\
+                            {timestamp}")
 
-            except Exception as e:
+            except Exception as error:
                 self.return_error(
-                    "Timestamp error - There was an error while parsing the date from %s -- Error: %s" % (timestamp, str(e)))
+                    f"Timestamp error \
+                        - There was an error while parsing the date from {timestamp} \
+                        -- Error: {str(error)}")
 
         # Can't next substmts in other substmts - if not supplied it is an
         # Activity
@@ -698,6 +743,7 @@ class StatementValidator():
             self.validate_context(substmt['context'], substmt['object'])
 
     def validate_result(self, result):
+        """Validate result."""
         # Ensure incoming result is dict and check allowed fields
         self.check_if_dict(result, "Result")
         self.check_allowed_fields(result_allowed_fields, result, "Result")
@@ -731,6 +777,7 @@ class StatementValidator():
             self.validate_score(result['score'])
 
     def validate_score(self, score):
+        """Validate score."""
         # Ensure incoming score is a dict and check allowed fields
         self.check_if_dict(score, "Score")
         self.check_allowed_fields(score_allowed_fields, score, "Score")
@@ -777,6 +824,7 @@ class StatementValidator():
                     "Score scaled value in statement result must be between -1 and 1")
 
     def validate_context(self, context, stmt_object):
+        """Validate context."""
         # Ensure incoming context is a dict and check allowed fields
         self.check_if_dict(context, "Context")
         self.check_allowed_fields(context_allowed_fields, context, "Context")
@@ -843,14 +891,15 @@ class StatementValidator():
             self.validate_extensions(context['extensions'], 'context extensions')
 
     def validate_context_activities(self, conacts):
+        """Validate context activities."""
         # Ensure incoming conact is dict
         self.check_if_dict(conacts, "Context activity")
         context_activity_types = ['parent', 'grouping', 'category', 'other']
         for conact in list(conacts.items()):
             # Check if conact is a valid type
             if not conact[0] in context_activity_types:
-                self.return_error("Context activity type is not valid - %s - must be %s" %
-                                  (conact[0], ', '.join(context_activity_types)))
+                self.return_error(f"Context activity type is not valid \
+                                  - {conact[0]} - must be{', '.join(context_activity_types)}")
             # Ensure conact is a list or dict
             if isinstance(conact[1], list):
                 for act in conact[1]:
@@ -862,27 +911,76 @@ class StatementValidator():
                     "contextActivities is not formatted correctly")
 
     def validate_context_agents(self, conags):
-
+        """Validate context agents."""
         self.check_if_list(conags, "Context Agents")
-        
-        for sub in conags:
-            if sub["objectType"] != "contextAgent":
-                raise ValidationError("[objectType] for Context Agent entries must be 'contextAgent'")
 
-            if not isinstance(sub["relevantTypes"], list):
-                raise ValidationError("[relevantTypes] for Context Agent entries must be a list")
+        for context_agent in conags:
+            context_agent_objtype = context_agent.get("objectType", None)
+            if context_agent_objtype is None:
+                self.return_error("[objectType]\
+                                    Context Agent entries must have an objectType")
+            # Validate that objectType is 'contextAgent'
+            if context_agent_objtype != "contextAgent":
+                self.return_error(f"[objectType]\
+                                    Context Agent entries must be 'contextAgent',\
+                                    got {context_agent_objtype}")
 
-            self.validate_agent(sub["agent"], 'Context agent')
+            context_agent_reltypes = context_agent.get("relevantTypes", None)
+            if context_agent_reltypes is None:
+                self.return_error("[relevantTypes]\
+                                    Context Agent entries must have relevantTypes")
+
+            # Validate that relevantTypes is a list
+            if not isinstance(context_agent_reltypes, list) or not context_agent_reltypes:
+                self.return_error("[relevantTypes]\
+                                    Context Agent entries must be a non-empty list")
+
+            # Validate that all elements in relevantTypes are valid IRIs
+            for relevant_type in context_agent_reltypes:
+                self.validate_iri(relevant_type, "relevantTypes")
+
+            # Validate the agent object
+            context_agent_agent = context_agent.get("agent", None)
+            if context_agent_agent is None:
+                self.return_error("[agent]\
+                                    Context Agent entries must have an agent")
+
+            self.validate_agent(context_agent_agent, 'Context agent')
 
     def validate_context_groups(self, congrps):
-        
+        """Validate context groups."""
         self.check_if_list(congrps, "Context Groups")
-        
-        for sub in congrps:
-            if sub["objectType"] != "contextGroup":
-                raise ValidationError("[objectType] for Context Group entries must be 'contextGroup'")
 
-            if not isinstance(sub["relevantTypes"], list):
-                raise ValidationError("[relevantTypes] for Context Group entries must be a list")
+        for context_groups in congrps:
+            # Validate that objectType is 'contextGroup'
+            context_groups_objtype = context_groups.get("objectType", None)
+            if context_groups_objtype is None:
+                self.return_error("[objectType]\
+                                    Context Group entries must have an objectType")
+                
+            if context_groups_objtype != "contextGroup":
+                self.return_error(f"[objectType]\
+                                     Context Group entries must be 'contextGroup',\
+                                     got {context_groups_objtype}")
 
-            self.validate_agent(sub["group"], 'Context group')
+            # Validate that relevantTypes is a list
+            context_groups_reltypes = context_groups.get("relevantTypes", None)
+            if context_groups_reltypes is None:
+                self.return_error("[relevantTypes]\
+                                    Context Group entries must have relevantTypes")
+                
+            if not isinstance(context_groups_reltypes, list) or not context_groups_reltypes:
+                self.return_error("[relevantTypes]\
+                                    Context Group entries must be a non-empty list")
+
+            # Validate that all elements in relevantTypes are valid IRIs
+            for relevant_type in context_groups_reltypes:
+                self.validate_iri(relevant_type, "relevantTypes")
+
+            context_groups_group = context_groups.get("group", None)
+            if context_groups_group is None:
+                self.return_error("[group]\
+                                    Context Group entries must have a group")
+
+            # Validate the group object
+            self.validate_agent(context_groups_group, 'Context group')
