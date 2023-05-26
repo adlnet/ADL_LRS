@@ -215,8 +215,8 @@ def statements_more_get(req_dict):
 
     # If there are attachments, include them in the payload
     if attachments:
-        stmt_result, mime_type, content_length = build_response(stmt_result)
-        resp = HttpResponse(stmt_result, content_type=mime_type, status=200)
+        stmt_result_str, mime_type, content_length = build_response(stmt_result)
+        resp = HttpResponse(stmt_result_str, content_type=mime_type, status=200)
     
     # If not, just dump the stmt_result
     else:
@@ -230,7 +230,7 @@ def statements_more_get(req_dict):
     latest_stored = datetime.min
     for stmt in stmt_result["statements"]:
         stored = datetime.fromisoformat(stmt['stored'])
-        if stored > latest_stored:
+        if stored > latest_stored.astimezone(stored.tzinfo):
             latest_stored = stored
                                                             
     resp['Last-Modified'] = latest_stored.strftime("%a, %d-%b-%Y %H:%M:%S %Z")
@@ -267,7 +267,7 @@ def statements_get(req_dict):
         latest_stored = datetime.min
         for stmt in stmt_result["statements"]:
             stored = datetime.fromisoformat(stmt['stored'])
-            if stored > latest_stored:
+            if stored > latest_stored.astimezone(stored.tzinfo):
                 latest_stored = stored
 
         resp['Content-Length'] = str(content_length)               
