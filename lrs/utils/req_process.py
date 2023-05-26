@@ -149,14 +149,18 @@ def process_complex_get(req_dict):
     # If attachments=True in req_dict then include the attachment payload and
     # return different mime type
     if attachments:
-        stmt_result, mime_type, content_length = build_response(stmt_result)
-        resp = HttpResponse(stmt_result, content_type=mime_type, status=200)
+        stmt_result_str, mime_type, content_length = build_response(stmt_result)
+        resp = HttpResponse(stmt_result_str, content_type=mime_type, status=200)
+    
     # Else attachments are false for the complex get so just dump the
     # stmt_result
     else:
         if isinstance(stmt_result, dict):
-            stmt_result = json.dumps(stmt_result)
-        resp = HttpResponse(stmt_result, content_type=mime_type, status=200)
+            stmt_result_str = json.dumps(stmt_result)
+        else:
+            stmt_result_str = stmt_result
+        
+        resp = HttpResponse(stmt_result_str, content_type=mime_type, status=200)
     
     return resp, content_length, stmt_result
 
@@ -213,14 +217,13 @@ def statements_more_get(req_dict):
     if attachments:
         stmt_result, mime_type, content_length = build_response(stmt_result)
         resp = HttpResponse(stmt_result, content_type=mime_type, status=200)
+    
     # If not, just dump the stmt_result
     else:
         if isinstance(stmt_result, str):
-            resp = HttpResponse(
-                stmt_result, content_type=mime_type, status=200)
+            resp = HttpResponse(stmt_result, content_type=mime_type, status=200)
         else:
-            resp = HttpResponse(json.dumps(stmt_result),
-                                content_type=mime_type, status=200)
+            resp = HttpResponse(json.dumps(stmt_result), content_type=mime_type, status=200)
 
     resp['Content-Length'] = str(content_length)
 
@@ -238,7 +241,6 @@ def statements_more_get(req_dict):
 def statements_get(req_dict):
     stmt_result = {}
     mime_type = "application/json"
-    
     
     # If statementId is in req_dict then it is a single get - can still include attachments
     # or have a different format
@@ -338,6 +340,7 @@ def build_response(stmt_result, single=False):
     string_list.append("--" + boundary + "--\r\n")
     mime_type = 'multipart/mixed; boundary=' + '"%s"' % boundary
     attachment_body = "".join([str(s) for s in string_list])
+    
     return attachment_body, mime_type, len(attachment_body)
 
 
