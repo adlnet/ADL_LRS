@@ -207,13 +207,17 @@ def handle_request(request, more_id=None):
     try:
         r_dict = req_parse.parse(request, more_id)
         path = request.path.lower()
+        
         if path.endswith('/'):
             path = path.rstrip('/')
+        
         # Cutoff more_id
         if 'more' in path:
             path = reverse('lrs:statements').lower() + "/" + "more"
+        
         req_dict = validators[path][r_dict['method']](r_dict)
         return processors[path][req_dict['method']](req_dict)
+    
     except (BadRequest, OauthBadRequest, SuspiciousOperation) as err:
         status = 400
         log_exception(status, request.path)
@@ -226,7 +230,7 @@ def handle_request(request, more_id=None):
     except Forbidden as forb:
         status = 403
         log_exception(status, request.path)
-        response = HttpResponse(str(msg), status=status)
+        response = HttpResponse(str(forb), status=status)
     except NotFound as nf:
         status = 404
         log_exception(status, request.path)

@@ -39,11 +39,9 @@ class XAPIVersionHeader(object):
                     break
 
         if version:
-            if version == '1.0' or (version.startswith('1.0') and \
-                version in settings.XAPI_VERSIONS):
+            if version == '1.0' or (version.startswith('1.0') and version in settings.XAPI_VERSIONS):
                 return None
-            elif version == '2.0' or (version.startswith('2.0') and \
-                version in settings.XAPI_VERSIONS):
+            elif version == '2.0' or (version.startswith('2.0') and version in settings.XAPI_VERSIONS):
                 return None
             else:
                 resp = HttpResponse("X-Experience-API-Version is not supported", status=400)
@@ -54,7 +52,8 @@ class XAPIVersionHeader(object):
             resp['X-Experience-API-Version'] = settings.XAPI_VERSION
             return resp
 
-
     def process_response(self, request, response):
-        response['X-Experience-API-Version'] = settings.XAPI_VERSION
+        if response is not None:
+            response['X-Experience-API-Version'] = settings.XAPI_VERSION
+        
         return response

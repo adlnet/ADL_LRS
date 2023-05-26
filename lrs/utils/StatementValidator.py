@@ -44,7 +44,8 @@ result_allowed_fields = ['score', 'success',
 score_allowed_fields = ['scaled', 'raw', 'min', 'max']
 
 context_allowed_fields = ['registration', 'instructor', 'team', 'contextActivities',
-                          'revision', 'platform', 'language', 'statement', 'extensions']
+                          'revision', 'platform', 'language', 'statement', 'extensions',
+                          'contextAgents', 'contextGroups']
 
 
 context_agent_allowed_fields = ['objectType', 'agent', 'relevantTypes']
@@ -88,9 +89,11 @@ class StatementValidator():
             for st in self.data:
                 self.validate_statement(st)
             return "All Statements are valid"
+        
         elif isinstance(self.data, dict):
             self.validate_statement(self.data)
             return "Statement is valid"
+        
         else:
             self.return_error(f"There are no statements to validate, payload: {self.data}")
 
@@ -156,12 +159,12 @@ class StatementValidator():
 
     def validate_uuid(self, uuid, field):
         if isinstance(uuid, str):
+            val = None
             try:
                 val = UUID(uuid, version=4)
+                return val.hex == uuid
             except ValueError:
-                self.return_error(
-                    "%s - %s is not a valid UUID" % (field, uuid))
-            return val.hex == uuid
+                self.return_error(f"{field} - {uuid} is not a valid UUID")
         else:
             self.return_error("%s must be a string type" % field)
 
@@ -178,8 +181,7 @@ class StatementValidator():
         # Check for fields that aren't in spec
         failed_list = [x for x in list(obj.keys()) if x not in allowed]
         if failed_list:
-            self.return_error("Invalid field(s) found in %s - %s" %
-                              (obj_name, ', '.join(failed_list)))
+            self.return_error(f"Invalid field(s) found in {obj_name} - {', '.join(failed_list)}")
 
     def check_required_fields(self, required, obj, obj_name):
         for field in required:
@@ -436,7 +438,7 @@ class StatementValidator():
         self.validate_iri(verb['id'], 'Verb id')
 
         if verb['id'] == "http://adlnet.gov/expapi/verbs/voided":
-            if stmt_object['objectType']:
+            if stmt_object is not None and stmt_object['objectType']:
                 if stmt_object['objectType'] != "StatementRef":
                     raise ParamError(
                         "Statement with voided verb must have StatementRef as objectType")
@@ -861,7 +863,7 @@ class StatementValidator():
 
     def validate_context_agents(self, conags):
 
-        self.check_if_list(congrps, "Context Agents")
+        self.check_if_list(conags, "Context Agents")
         
         for sub in conags:
             if sub["objectType"] != "contextAgent":

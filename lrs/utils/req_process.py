@@ -3,13 +3,16 @@ import json
 import re
 import unicodedata
 import uuid
+import math
 
-from datetime import datetime
+from isodate.isodatetime import parse_datetime
+from datetime import datetime, timezone
 
 from django.http import HttpResponse, HttpResponseNotFound, JsonResponse
 from django.conf import settings
 from django.utils.timezone import utc
 
+from . import truncate_duration
 from .retrieve_statement import complex_get, parse_more_request
 from ..exceptions import NotFound
 from ..models import Statement, Agent, Activity
@@ -32,19 +35,9 @@ def process_statement(stmt, auth, payload_sha2s):
     # Check for result -> duration and truncate seconds if needed.
     if 'result' in stmt:
         if 'duration' in stmt['result']:
-            stmt_dur = stmt['result']['duration']
-            sec_split = re.findall("\d+(?:\.\d+)?S", stmt_dur)
-            if sec_split:
-                sec_as_str = sec_split[0]
-                sec_as_num = float(sec_as_str.replace('S', ''))
-
-                if not sec_as_num.is_integer():
-                    sec_trunc = round(sec_as_num, 2)
-                else:
-                    sec_trunc = int(sec_as_num)
-
-                stmt['result']['duration'] = unicodedata.normalize("NFKD", stmt_dur.replace(sec_as_str, str(sec_trunc) + 'S'))
-        
+            duration = stmt['result']['duration']
+            stmt['result']['duration'] = truncate_duration(duration)
+    
     # Convert context activities to list if dict
     if 'context' in stmt and 'contextActivities' in stmt['context']:
         for k, v in list(stmt['context']['contextActivities'].items()):
@@ -59,7 +52,19 @@ def process_statement(stmt, auth, payload_sha2s):
                     stmt['object']['context']['contextActivities'][k] = [v]
 
     # Add stored time
-    stmt['stored'] = datetime.utcnow().replace(tzinfo=utc).isoformat()
+    stmt['stored'] = datetime.now(utc).utcnow().replace(tzinfo=utc).isoformat()
+
+    # Check if timestamp uses UTC, replace otherwise
+    if "timestamp" in stmt:
+        rfc_timestamp = stmt["timestamp"]
+        rfc_timestamp_had_space = " " in rfc_timestamp
+
+        iso_timestamp = rfc_timestamp.replace(" ", "T")
+
+        timestamp_utc = parse_datetime(iso_timestamp).astimezone(tz=timezone.utc).isoformat()
+        timestamp_final = timestamp_utc.replace("T", " ") if rfc_timestamp_had_space else timestamp_utc
+
+        stmt["timestamp"] = timestamp_final
 
     # Add stored as timestamp if timestamp not present
     if 'timestamp' not in stmt:
@@ -71,6 +76,7 @@ def process_statement(stmt, auth, payload_sha2s):
 
     if stmt['verb'].verb_id == 'http://adlnet.gov/expapi/verbs/voided':
         return st.statement_id, st.object_statementref
+    
     return st.statement_id, None
 
 
@@ -157,6 +163,7 @@ def process_complex_get(req_dict):
 
 def statements_post(req_dict):
     auth = req_dict['auth']
+    
     # If single statement, put in list
     if isinstance(req_dict['body'], dict):
         body = [req_dict['body']]
@@ -165,13 +172,16 @@ def statements_post(req_dict):
 
     stmt_responses = process_body(body, auth, req_dict.get('payload_sha2s', None))
     stmt_ids = [stmt_tup[0] for stmt_tup in stmt_responses]
-    stmts_to_void = [str(stmt_tup[1])
-                     for stmt_tup in stmt_responses if stmt_tup[1]]
+    stmts_to_void = [str(stmt_tup[1]) for stmt_tup in stmt_responses if stmt_tup[1]]
+    
     check_activity_metadata.delay(stmt_ids)
+    
     if stmts_to_void:
         Statement.objects.filter(statement_id__in=stmts_to_void).update(voided=True)
+    
     if settings.USE_HOOKS:
         check_statement_hooks.delay(stmt_ids)
+    
     return JsonResponse([st for st in stmt_ids], safe=False)
 
 
@@ -236,21 +246,17 @@ def statements_get(req_dict):
         st = Statement.objects.get(statement_id=req_dict['statementId'])
         stmt_dict = st.to_dict(ret_format=req_dict['params']['format'])
         
-        #Grab datetime where it is stored as string, convert to datetime and format
-        last_stored = datetime.fromisoformat(stmt_dict['stored']).strftime("%a, %d-%b-%Y %H:%M:%S %Z")
-
         if req_dict['params']['attachments']:
             stmt_result, mime_type, content_length = build_response(stmt_dict, True)
             resp = HttpResponse(stmt_result, content_type=mime_type, status=200)
         else:
             stmt_result = json.dumps(stmt_dict, sort_keys=False)
-
             resp = HttpResponse(stmt_result, content_type=mime_type, status=200)
-  
+            
             content_length = len(stmt_result)
 
-        #stored is in iso we need it like this "Last-Modified: <day-name>, <day> <month> <year> <hour>:<minute>:<second> UTC"
-        resp['Last-Modified'] = last_stored
+        resp['Content-Length'] = str(content_length)  
+        resp['Last-Modified'] = datetime.fromisoformat(stmt_dict['stored']).strftime("%a, %d-%b-%Y %H:%M:%S %Z")
     
     # Complex GET
     else:
@@ -262,8 +268,7 @@ def statements_get(req_dict):
             if stored > latest_stored:
                 latest_stored = stored
 
-        resp['Content-Length'] = str(content_length)
-                                                                    
+        resp['Content-Length'] = str(content_length)               
         resp['Last-Modified'] = latest_stored.strftime("%a, %d-%b-%Y %H:%M:%S %Z")
 
     return resp
@@ -278,16 +283,16 @@ def build_response(stmt_result, single=False):
     # Iterate through each attachment in each statement
     for stmt in statements:
         if 'attachments' in stmt:
-            st_atts = Statement.objects.get(
-                statement_id=stmt['id']).stmt_attachments
-            if st_atts:
-                for att in st_atts.all():
-                    if att.payload:
+            statement_db_obj = Statement.objects.get(statement_id=stmt['id'])
+            attachments = getattr(statement_db_obj, "stmt_attachments", None)
+            if attachments:
+                for attachment in attachments.all():
+                    if attachment.payload:
 
                         sha2s.append({
-                            "sha2": att.canonical_data['sha2'], 
-                            "payload": att.payload,
-                            "contentType": att.canonical_data['contentType']
+                            "sha2": attachment.canonical_data['sha2'], 
+                            "payload": attachment.payload,
+                            "contentType": attachment.canonical_data['contentType']
                         })
 
                         # sha2s.append(
@@ -365,19 +370,17 @@ def activity_state_get(req_dict):
     else:
         registration = req_dict['params'].get('registration', None)
         actstate = ActivityStateManager(a)
+        
         # state id means we want only 1 item
         if state_id:
             resource = actstate.get_state(activity_id, registration, state_id)
-            #MB Resource is a model of AgentProfile, it has an 'updated' property
+            
             if resource.state:
-                response = HttpResponse(
-                    resource.state.read(), content_type=resource.content_type)
+                response = HttpResponse(resource.state.read(), content_type=resource.content_type)
             else:
-                response = HttpResponse(
-                    resource.json_state, content_type=resource.content_type)
-            response['ETag'] = '"%s"' % resource.etag
-
-            #MB place our header (updated is saved as a datetime field, so it doesn't need to be pulled from isoformat)
+                response = HttpResponse(resource.json_state, content_type=resource.content_type)
+  
+            response['ETag'] = f'"{resource.etag}"' 
             response['Last-Modified'] = resource.updated.strftime("%a, %d-%b-%Y %H:%M:%S %Z")
         
         # no state id means we want an array of state ids
@@ -421,24 +424,21 @@ def activity_profile_get(req_dict):
     # Instantiate ActivityProfile
     ap = ActivityProfileManager()
     # Get profileId and activityId
-    profile_id = req_dict['params'].get(
-        'profileId', None) if 'params' in req_dict else None
-    activity_id = req_dict['params'].get(
-        'activityId', None) if 'params' in req_dict else None
+    profile_id = req_dict['params'].get('profileId', None) if 'params' in req_dict else None
+    activity_id = req_dict['params'].get('activityId', None) if 'params' in req_dict else None
+    since = req_dict['params'].get('since', None) if 'params' in req_dict else None
 
     # If the profileId exists, get the profile and return it in the response
     if profile_id:
         resource = ap.get_profile(profile_id, activity_id)
         if resource.profile:
             try:
-                response = HttpResponse(
-                    resource.profile.read(), content_type=resource.content_type)
+                response = HttpResponse(resource.profile.read(), content_type=resource.content_type)
             except IOError:
-                response = HttpResponseNotFound(
-                    "Error reading file, could not find: %s" % profile_id)
+                response = HttpResponseNotFound("Error reading file, could not find: %s" % profile_id)
         else:
-            response = HttpResponse(
-                resource.json_profile, content_type=resource.content_type)
+            response = HttpResponse(resource.json_profile, content_type=resource.content_type)
+        
         response['ETag'] = '"%s"' % resource.etag
 
         #MB place our header (updated is saved as a datetime field, so it doesn't need to be pulled from isoformat)
@@ -446,14 +446,15 @@ def activity_profile_get(req_dict):
         return response
 
     # Return IDs of profiles stored since profileId was not submitted
-    since = req_dict['params'].get(
-        'since', None) if 'params' in req_dict else None
-    resource = ap.get_profile_ids(activity_id, since)
-    response = JsonResponse([k for k in resource], safe=False)
-    response['since'] = since
+    else:
+        resource = ap.get_profile_ids(activity_id, since)
 
-    return response
+        response = JsonResponse([k for k in resource], safe=False)
 
+        if since is not None:
+            response['since'] = since
+
+        return response
 
 def activity_profile_delete(req_dict):
     # Instantiate activity profile
@@ -465,12 +466,19 @@ def activity_profile_delete(req_dict):
 
 def activities_get(req_dict):
     activity_id = req_dict['params']['activityId']
-    act = Activity.objects.get(
-        activity_id=activity_id, authority__isnull=False)
-    return_act = json.dumps(
-        act.return_activity_with_lang_format(['all']), sort_keys=False)
-    resp = HttpResponse(
-        return_act, content_type="application/json", status=200)
+
+    try :
+        activity_record = Activity.objects.get(activity_id=activity_id, authority__isnull=False)
+        return_act = json.dumps(activity_record.return_activity_with_lang_format(['all']), sort_keys=False)
+    
+    except Activity.DoesNotExist:
+        activity_stub = {
+            "id": activity_id,
+            "objectType": "Activity"
+        }
+        return_act = json.dumps(activity_stub)
+    
+    resp = HttpResponse(return_act, content_type="application/json", status=200)
     resp['Content-Length'] = str(len(return_act))
 
     return resp
@@ -502,39 +510,40 @@ def agent_profile_get(req_dict):
     a = Agent.objects.retrieve(**agent)
     if not a:
         response = HttpResponseNotFound("No agent found for agent profile get")
+        return response
     else:
         ap = AgentProfileManager(a)
 
         profile_id = req_dict['params'].get('profileId', None) if 'params' in req_dict else None
+        since = req_dict['params'].get('since', None) if 'params' in req_dict else None
+
         if profile_id:
             resource = ap.get_profile(profile_id)
             if resource.profile:
-                response = HttpResponse(
-                    resource.profile.read(), content_type=resource.content_type)
+                response = HttpResponse(resource.profile.read(), content_type=resource.content_type)
             else:
-                response = HttpResponse(
-                    resource.json_profile, content_type=resource.content_type)
+                response = HttpResponse(resource.json_profile, content_type=resource.content_type)
+            
             response['ETag'] = '"%s"' % resource.etag
             #place our header (updated is saved as a datetime field, so it doesn't need to be pulled from isoformat)
             response['Last-Modified'] = resource.updated.strftime("%a, %d-%b-%Y %H:%M:%S %Z")
             return response
+        
+        else:
 
-        since = req_dict['params'].get(
-            'since', None) if 'params' in req_dict else None
-        resource = ap.get_profile_ids(since)
-        response = JsonResponse([k for k in resource], safe=False)
+            resource = ap.get_profile_ids(since)
+            response = JsonResponse([k for k in resource], safe=False)
 
-    return response
-
+            return response
 
 def agent_profile_delete(req_dict):
     agent = req_dict['params']['agent']
     a = Agent.objects.retrieve(**agent)
     if not a:
         return HttpResponse('', status=204)
-    profile_id = req_dict['params']['profileId']
+    
     ap = AgentProfileManager(a)
-    ap.delete_profile(profile_id)
+    ap.delete_profile(req_dict)
 
     return HttpResponse('', status=204)
 
@@ -542,8 +551,7 @@ def agent_profile_delete(req_dict):
 def agents_get(req_dict):
     a = Agent.objects.get(**req_dict['agent_ifp'])
     agent_data = json.dumps(a.to_dict_person(), sort_keys=False)
-    resp = HttpResponse(
-        agent_data, content_type="application/json", status=200)
+    resp = HttpResponse(agent_data, content_type="application/json", status=200)
     resp['Content-Length'] = str(len(agent_data))
 
     return resp

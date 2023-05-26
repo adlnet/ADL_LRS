@@ -4,6 +4,7 @@ import email
 import hashlib
 import json
 
+from isodate import parse_duration
 from isodate.isoerror import ISO8601Error
 from Crypto.PublicKey import RSA
 from jose import jws
@@ -13,7 +14,7 @@ from django.core.cache import caches
 from django.urls import reverse
 from django.http import QueryDict
 
-from . import convert_to_datatype, convert_post_body_to_dict, validate_timestamp
+from . import convert_to_datatype, convert_post_body_to_dict, validate_timestamp, truncate_duration
 from .etag import get_etag_info
 from ..exceptions import OauthUnauthorized, OauthBadRequest, ParamError, BadRequest
 
@@ -50,7 +51,8 @@ def parse(request, more_id=None):
     # lookin for weird IE CORS stuff.. it'll be a post with a 'method' url
     # param
     if request.method == 'POST' and 'method' in request.GET:
-        parse_cors_request(request, r_dict)
+        raise BadRequest("Alternate Request Syntax is no longer allowed.")
+    
     # Just parse body for all non IE CORS stuff
     else:
         parse_normal_request(request, r_dict)
@@ -85,23 +87,27 @@ def set_normal_authorization(request, r_dict):
     r_dict['auth']['endpoint'] = get_endpoint(request)
     if auth_params[:6] == 'OAuth ':
         oauth_request = get_oauth_request(request)
-        # Returns HttpBadRequest if missing any params
+
+        if oauth_request is None:
+            raise ParamError("OAuth config could not be determined from request.")
+        
+        # Returns HttpBadResponse if missing any params
         missing = require_params(oauth_request)
         if missing:
-            raise missing
+            raise ParamError("OAuth request was missing required parameters.")
 
         check = CheckOauth()
         e_type, error = check.check_access_token(request)
+        
         if e_type and error:
             if e_type == 'auth':
                 raise OauthUnauthorized(error)
             else:
                 raise OauthBadRequest(error)
+        
         # Consumer and token should be clean by now
-        consumer = store.get_consumer(
-            request, oauth_request, oauth_request['oauth_consumer_key'])
-        token = store.get_access_token(
-            request, oauth_request, consumer, oauth_request.get_parameter('oauth_token'))
+        consumer = store.get_consumer(request, oauth_request, oauth_request['oauth_consumer_key'])
+        token = store.get_access_token(request, oauth_request, consumer, oauth_request.get_parameter('oauth_token'))
 
         # Set consumer and token for authentication piece
         r_dict['auth']['oauth_consumer'] = consumer
@@ -119,6 +125,7 @@ def parse_post_put_body(request, r_dict):
         # signed statements)
         if 'multipart/mixed' in r_dict['headers']['CONTENT_TYPE']:
             parse_attachment(request, r_dict)
+        
         # If it's any other content-type try parsing it out
         else:
             body_str = request.body.decode("utf-8") if isinstance(request.body, bytes) else request.body
@@ -236,11 +243,9 @@ def parse_attachment(request, r_dict):
     lines = message.splitlines()
     if not lines[0].startswith('Content-Type: multipart/mixed; boundary='):
         if 'boundary' in r_dict['headers']['CONTENT_TYPE']:
-            message = "Content-Type:" + \
-                r_dict['headers']['CONTENT_TYPE'] + "\r\n" + message
+            message = "Content-Type:" + r_dict['headers']['CONTENT_TYPE'] + "\r\n" + message
         else:
-            raise BadRequest(
-                "Could not find the boundary for the multipart content")
+            raise BadRequest("Could not find the boundary for the multipart content")
     
     # end workaround
     msg = email.message_from_string(message)
@@ -257,8 +262,10 @@ def parse_attachment(request, r_dict):
         except Exception:
             raise ParamError("Statement was not valid JSON")
         
+        stmt_sha2s = []
         if isinstance(r_dict['body'], dict):
-            stmt_sha2s = [a['sha2'] for a in r_dict['body']['attachments'] if 'attachments' in r_dict['body']]
+            if "attachments" in r_dict['body']:
+                stmt_sha2s = [a['sha2'] for a in r_dict['body']['attachments']]
         else:
             stmt_sha2s = [a['sha2'] for s in r_dict['body'] if 'attachments' in s for a in s['attachments']]
         
@@ -269,29 +276,26 @@ def parse_attachment(request, r_dict):
             encoding = part.get('Content-Transfer-Encoding', None)
             
             if encoding != "binary":
-                raise BadRequest(
-                    "Each attachment part should have 'binary' as Content-Transfer-Encoding")
+                raise BadRequest("Each attachment part should have 'binary' as Content-Transfer-Encoding")
             
             if 'X-Experience-API-Hash' not in part:
-                raise BadRequest(
-                    "X-Experience-API-Hash header was missing from attachment")
+                raise BadRequest("X-Experience-API-Hash header was missing from attachment")
             
             part_hash = part.get('X-Experience-API-Hash')
             validate_hash(part_hash, part)
             
             part_dict[part_hash] = part
         
-        r_dict['payload_sha2s'] = [
-            p['X-Experience-API-Hash'] for p in msg.get_payload()
-        ]
+        r_dict['payload_sha2s'] = [p['X-Experience-API-Hash'] for p in msg.get_payload()]
 
         if not set(r_dict['payload_sha2s']).issubset(set(stmt_sha2s)):
             raise BadRequest("Not all attachments match with statement payload")
         
         parse_signature_attachments(r_dict, part_dict)
+    
     else:
-        raise ParamError(
-            "This content was not multipart for the multipart request.")
+        raise ParamError("This content was not multipart for the multipart request.")
+    
     # Saves all attachments (including signatures) to memory temporarily
     # for further processing
     temp_save_attachments(msg)
@@ -303,76 +307,93 @@ def validate_hash(part_hash, part):
             "Hash header %s did not match calculated hash" \
             % part_hash)
 
+def is_a_signature(attachment):
+    usage_type = attachment.get('usageType', None)
+    return usage_type == "http://adlnet.gov/expapi/attachments/signature"
+
+def get_signature(attachment):
+    return attachment.get("sha2", None)
+
 def parse_signature_attachments(r_dict, part_dict):
     # Find the signature sha2 from the list attachment values in the
     # statements (there should only be one)
     signed_stmts = []
     unsigned_stmts = []
     stmt_attachment_pairs = []
+    
     if isinstance(r_dict['body'], list):
-        for stmt in r_dict['body']:
-            if 'attachments' in stmt:
-                stmt_attachment_pairs.append((stmt, [a.get('sha2', None) for a in stmt['attachments']
-                                if a.get('usageType', None) == "http://adlnet.gov/expapi/attachments/signature"]))
+        for statement in r_dict['body']:
+            if 'attachments' in statement:
+                attachments = statement["attachments"]
+                signatures = [get_signature(a) for a in attachments if is_a_signature(a)]
+                stmt_attachment_pairs.append((statement, signatures))
+    
     else:        
-        if 'attachments' in r_dict['body']:
-            stmt_attachment_pairs = [(r_dict['body'], [a.get('sha2', None) for a in r_dict['body']['attachments']
-                             if a.get('usageType', None) == "http://adlnet.gov/expapi/attachments/signature"])]
-    signed_stmts = [sap for sap in stmt_attachment_pairs if sap[1]]
-    unsigned_stmts = [sap for sap in stmt_attachment_pairs if not sap[1]]
+        statement = r_dict["body"]
+        if 'attachments' in statement:
+            attachments = statement["attachments"]
+            signatures = [get_signature(a) for a in attachments if is_a_signature(a)]
+            stmt_attachment_pairs.append((statement, signatures))
+    
+    signed_stmts = [(statement, signatures) for (statement, signatures) in stmt_attachment_pairs if signatures]
+    unsigned_stmts = [(statement, signatures) for (statement, signatures) in stmt_attachment_pairs if not signatures]
 
     if unsigned_stmts:
-        for tup in unsigned_stmts:
-            validate_non_signature_attachment(unsigned_stmts, r_dict['payload_sha2s'], part_dict)
+        validate_non_signature_attachment(unsigned_stmts, r_dict['payload_sha2s'], part_dict)
 
     if signed_stmts:
         handle_signatures(signed_stmts, r_dict['payload_sha2s'], part_dict)
 
 
-def validate_non_signature_attachment(unsigned_stmts, sha2s, part_dict):
-    for tup in unsigned_stmts:
-        atts = tup[0]['attachments']
-        for att in atts:
-            sha2 = att.get('sha2')
+def validate_non_signature_attachment(unsigned_stmts, sha2s_on_request, part_dict):
+    for statement_signature_tuple in unsigned_stmts:
+        
+        statement, _ = statement_signature_tuple
+        attachments = statement['attachments']
+        
+        for attachment in attachments:
+            sha2 = attachment.get('sha2')
             # If there isn't a fileUrl, the sha field must match
             # a received attachment payload
-            if 'fileUrl' not in att:
+            if 'fileUrl' not in attachment:
                 # Should be listed in sha2s - sha2s couldn't not match
-                if sha2 not in sha2s:
-                    raise BadRequest(
-                        "Could not find attachment payload with sha: %s" % sha2)
+                if sha2 not in sha2s_on_request:
+                    raise BadRequest(f"Could not find attachment payload with sha: {sha2}")
 
 
-def handle_signatures(stmt_tuples, sha2s, part_dict):
-    for tup in stmt_tuples:
-        for sha2 in tup[1]:           
+def handle_signatures(stmt_tuples, sha2s_on_request, part_dict):
+    for statement, signatures in stmt_tuples:
+
+        for sha2 in signatures:           
             # Should be listed in sha2s - sha2s couldn't not match
-            if sha2 not in sha2s:
-                raise BadRequest(
-                    "Could not find attachment payload with sha: %s" % sha2)                    
+            if sha2 not in sha2s_on_request:
+                raise BadRequest(f"Could not find attachment payload with sha: {sha2}")                    
+            
             part = part_dict[sha2]
+            
             # Content type must be set to octet/stream
             if part['Content-Type'] != 'application/octet-stream':
-                raise BadRequest(
-                    "Signature attachment must have Content-Type of "\
-                    "'application/octet-stream'")
-            validate_signature(tup, part)
+                raise BadRequest("Signature attachment must have Content-Type of 'application/octet-stream'")
+            
+            validate_signature(statement, signatures, part)
 
 
-def validate_signature(tup, part):
-    sha2_key = tup[1][0]
+def validate_signature(statement, signatures, part):
+
+    sha2_key = signatures[0]
     signature = get_part_payload(part)
     algorithm = jws.get_unverified_headers(signature).get('alg', None)
+    
     if not algorithm:
-        raise BadRequest(
-            "No signing algorithm found for JWS signature")
+        raise BadRequest("No signing algorithm found for JWS signature")
+    
     if algorithm != 'RS256' and algorithm != 'RS384' and algorithm != 'RS512':
-        raise BadRequest(
-            "JWS signature must be calculated with SHA-256, SHA-384 or" \
-            "SHA-512 algorithms")
+        raise BadRequest("JWS signature must be calculated with SHA-256, SHA-384 or SHA-512 algorithms")
+    
     x5c = jws.get_unverified_headers(signature).get('x5c', None)
     jws_payload = jws.get_unverified_claims(signature)
-    body_payload = tup[0]
+    body_payload = statement
+
     # If x.509 was used to sign, the public key should be in the x5c header and you need to verify it
     # If using RS256, RS384, or RS512 some JWS libs require a real private key to create JWS - xAPI spec
     # only has SHOULD - need to look into. If x.509 is necessary then
@@ -380,24 +401,50 @@ def validate_signature(tup, part):
     if x5c:
         verified = False
         try:
-            verified = jws.verify(
-                signature, cert_to_key(x5c[0]), algorithm)
+            key = cert_to_key(x5c[0]).exportKey()
+            verified = jws.verify(signature, key, algorithm)
+        
         except Exception as e:
-            raise BadRequest("The JWS is not valid: %s" % str(e))
+            raise BadRequest(f"The JWS is not valid: {str(e)}")
+        
         else:
             if not verified:
-                raise BadRequest(
-                    "The JWS is not valid - could not verify signature")
+                raise BadRequest("The JWS is not valid - could not verify signature")
+            
             # Compare statements
             if not compare_payloads(jws_payload, body_payload, sha2_key):
-                raise BadRequest(
-                    "The JWS is not valid - payload and body statements do not match")
+                raise BadRequest("The JWS is not valid - payload and body statements do not match")
+    
     else:
         # Compare statements
         if not compare_payloads(jws_payload, body_payload, sha2_key):
-            raise BadRequest(
-                "The JWS is not valid - payload and body statements do not match")
+            raise BadRequest("The JWS is not valid - payload and body statements do not match")
 
+def prepare_result_for_equivalence_check(statement_dict):
+    """
+    The Duration property of a result must only be compared against the first
+    two decimal places of its Seconds property.  Anything beyond that must
+    be truncated, per the 2.0 spec.
+    """
+    if "result" in statement_dict and "duration" in statement_dict["result"]:
+        duration = statement_dict["result"]["duration"]
+        statement_dict["result"]["duration"] = truncate_duration(duration)
+
+    return statement_dict
+
+def prepare_statement_for_equivalence_check(statement_dict, is_substatement=False) -> dict:
+    
+    prepare_result_for_equivalence_check(statement_dict)
+
+    if not is_substatement:
+        return statement_dict
+    
+    if "object" in statement_dict and "objectType" in statement_dict["object"]:
+        object_type = statement_dict["object"]["objectType"]
+        if object_type == "SubStatement":
+            prepare_statement_for_equivalence_check(statement_dict["object"], is_substatement=True)
+
+    return statement_dict
 
 def compare_payloads(jws_payload, body_payload, sha2_key):
     # Need to copy the dict so use dict()
@@ -413,6 +460,7 @@ def compare_payloads(jws_payload, body_payload, sha2_key):
     jws_placeholder.pop("timestamp", None)
     jws_placeholder.pop("version", None)
     jws_placeholder.pop("attachments", None)
+
     # JWT specific standard fields
     jws_placeholder.pop("iss", None)
     jws_placeholder.pop("sub", None)
@@ -429,6 +477,9 @@ def compare_payloads(jws_payload, body_payload, sha2_key):
     body_placeholder.pop("timestamp", None)
     body_placeholder.pop("version", None)
     body_placeholder.pop("attachments", None)
+
+    prepare_statement_for_equivalence_check(body_placeholder)
+    prepare_statement_for_equivalence_check(jws_placeholder)
 
     return json.dumps(jws_placeholder, sort_keys=True) == json.dumps(body_placeholder, sort_keys=True)
 
@@ -454,7 +505,6 @@ def get_part_payload(part):
 
 def cert_to_key(cert):
     return RSA.importKey(base64.b64decode(cert))
-
 
 def get_endpoint(request):
     # Used for OAuth scope

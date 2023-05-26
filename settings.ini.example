@@ -47,3 +47,6 @@ PASSWORD: rabbitmq
 HOST: amqp
 PORT: 5672
 VHOST: /
+
+[redis]
+URL: redis://redis:6379/0

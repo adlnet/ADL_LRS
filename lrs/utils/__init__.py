@@ -1,8 +1,11 @@
 import ast
 import json
 import urllib
+import re
+import unicodedata
+import math
 
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, parse_qsl, urlparse, unquote_plus
 
 from datetime import datetime
 from isodate.isodates import parse_date
@@ -24,6 +27,7 @@ class RFC3339Error(ValueError):
 
 def validate_timestamp(time_str):
     time_ret = None
+    rfc_ret = None
 
     try:
         time_ret = parse_datetime(time_str)
@@ -111,10 +115,10 @@ def convert_post_body_to_dict(incoming_data):
     for p in pairs:
         # this is checked for cors requests
         if p.startswith('content='):
-            if p == urllib.parse.unquote_plus(p):
+            if p == unquote_plus(p):
                 encoded = False
             break
-    qs = urllib.parse.parse_qsl(decoded)
+    qs = parse_qsl(decoded)
     return dict((k, v) for k, v in qs), encoded
 
 
@@ -145,3 +149,20 @@ def get_lang(langdict, lang):
                     pass
     first = next(iter(langdict.items()))
     return {first[0]: first[1]}
+
+def truncate_duration(duration):
+    sec_split = re.findall(r"\d+(?:\.\d+)?S", duration)
+    if sec_split:
+        seconds_str = sec_split[0]
+        seconds = float(seconds_str.replace('S', ''))
+
+        if not seconds.is_integer():
+            ### xAPI 2.0: Truncation required for comparison, not rounding etc.
+            # sec_trunc = round(sec_as_num, 2)
+            seconds_truncated = math.floor(seconds * 100) / 100
+        else:
+            seconds_truncated = int(seconds)
+
+        return unicodedata.normalize("NFKD", duration.replace(seconds_str, str(seconds_truncated) + 'S'))
+    else:
+        return duration

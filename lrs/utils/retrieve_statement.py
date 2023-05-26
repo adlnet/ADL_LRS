@@ -166,17 +166,19 @@ def create_under_limit_stmt_result(stmt_set, stored, language, stmt_format):
         stmt_result['more'] = ""
     return stmt_result
 
-
 def create_cache_key():
     # Create unique hash data to use for the cache key
-    hash_data = []
-    hash_data.append(str(datetime.now()))
-    hash_data.append(str(uuid.uuid4()))
+    hash_data = [
+        str(datetime.now()),
+        str(uuid.uuid4())
+    ]
 
     # Create cache key from hashed data (always 32 digits)
-    key = hashlib.md5(bcoding.bencode(hash_data)).hexdigest()
-    return key
+    bcode = bcoding.bencode(hash_data)
+    assert bcode is not None
 
+    key = hashlib.md5(bcode).hexdigest()
+    return key
 
 def create_over_limit_stmt_result(stmt_list, stored, limit, language, stmt_format, attachments):
     # First time someone queries POST/GET

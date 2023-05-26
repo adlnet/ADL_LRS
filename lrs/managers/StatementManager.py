@@ -12,11 +12,14 @@ att_cache = caches['attachment_cache']
 
 class StatementManager():
 
+    model_object: Statement
+
     def __init__(self, stmt_data, auth_info, payload_sha2s):
         # auth_info contains define, endpoint, user, and request authority
         if self.__class__.__name__ == 'StatementManager':
             # Full statement is for a statement only, same with authority
             self.set_authority(auth_info, stmt_data)
+        
         self.populate(auth_info, stmt_data, payload_sha2s)
 
     def set_authority(self, auth_info, stmt_data):
@@ -176,6 +179,9 @@ class StatementManager():
                 statement_object_data['id'])
         del stmt_data['object']
 
+    def build_model_object(self, auth_info, stmt_data) -> Statement:
+        return self.build_statement(auth_info, stmt_data)
+
     def populate(self, auth_info, stmt_data, payload_sha2s):
         if self.__class__.__name__ == 'StatementManager':
             stmt_data['voided'] = False
@@ -192,16 +198,24 @@ class StatementManager():
                                                                 'timestamp'])
         attachment_data = stmt_data.pop('attachments', None)
 
-        if self.__class__.__name__ == 'StatementManager':
-            # Save statement/substatement
-            self.model_object = self.build_statement(auth_info, stmt_data)
-        else:
-            self.model_object = self.build_substatement(auth_info, stmt_data)
+        # if self.__class__.__name__ == 'StatementManager':
+        #     # Save statement/substatement
+        #     self.build_statement(auth_info, stmt_data)
+        # else:
+        #     self.model_object = self.build_substatement(auth_info, stmt_data)
+
+        self.model_object = self.build_model_object(auth_info, stmt_data)
+        
         if attachment_data:
             self.build_attachments(auth_info, attachment_data, payload_sha2s)
 
 
 class SubStatementManager(StatementManager):
 
+    model_object: SubStatement
+
     def __init__(self, substmt_data, auth_info):
         StatementManager.__init__(self, substmt_data, auth_info, None)
+
+    def build_model_object(self, auth_info, stmt_data) -> SubStatement:
+        return self.build_substatement(auth_info, stmt_data)
