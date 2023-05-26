@@ -584,6 +584,29 @@ class StatementTests(TestCase):
         self.assertEqual(list(lang_map2.keys())[0], "en-GB")
         self.assertEqual(list(lang_map2.values())[0], "failed")
 
+    #The LRS shall include a "last modified" header which matches the "stored" Timestamp of the statment
+    def test_last_modified_header(self):
+        self.bunchostmts()
+        getResponse = self.client.get(reverse(
+            'lrs:statements'), X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)
+        self.assertEqual(response.status_code, 200)
+        #assert it has/included correct header
+        self.assertIn('Last-Modified', getResponse._headers)
+        #And that it equals the stored timestamp
+        lastModified = getResponse._headers('Last-Modified')
+        timeStamp = self.stored
+        self.assertEqual(lastModified, timestamp)
+
+   
+self.bunchostmts()
+        getResponse = self.client.get(reverse(
+            'lrs:statements'), X_Experience_API_Version=settings.XAPI_VERSION, Authorization=self.auth)
+        self.assertEqual(getResponse.status_code, 200)
+        jsn = json.loads(getResponse.content)
+        self.assertEqual(len(jsn["statements"]), 11)
+        self.assertIn('content-length', getResponse._headers)
+
+
     def test_put(self):
         guid = uuid.uuid4()
 

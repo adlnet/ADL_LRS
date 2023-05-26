@@ -157,7 +157,8 @@ def process_complex_get(req_dict):
         if isinstance(stmt_result, dict):
             stmt_result = json.dumps(stmt_result)
         resp = HttpResponse(stmt_result, content_type=mime_type, status=200)
-    return resp, content_length
+    
+    return resp, content_length, stmt_result
 
 
 def statements_post(req_dict):
@@ -220,30 +221,55 @@ def statements_more_get(req_dict):
         else:
             resp = HttpResponse(json.dumps(stmt_result),
                                 content_type=mime_type, status=200)
+
     resp['Content-Length'] = str(content_length)
 
+    latest_stored = datetime.min
+    for stmt in stmt_result["statements"]:
+        stored = datetime.fromisoformat(stmt['stored'])
+        if stored > latest_stored:
+            latest_stored = stored
+                                                            
+    resp['Last-Modified'] = latest_stored.strftime("%a, %d-%b-%Y %H:%M:%S %Z")
+   
     return resp
 
 
 def statements_get(req_dict):
     stmt_result = {}
     mime_type = "application/json"
+    
+    
     # If statementId is in req_dict then it is a single get - can still include attachments
     # or have a different format
     if 'statementId' in req_dict:
         st = Statement.objects.get(statement_id=req_dict['statementId'])
         stmt_dict = st.to_dict(ret_format=req_dict['params']['format'])
+        
         if req_dict['params']['attachments']:
             stmt_result, mime_type, content_length = build_response(stmt_dict, True)
             resp = HttpResponse(stmt_result, content_type=mime_type, status=200)
         else:
             stmt_result = json.dumps(stmt_dict, sort_keys=False)
             resp = HttpResponse(stmt_result, content_type=mime_type, status=200)
+            
             content_length = len(stmt_result)
+
+        resp['Content-Length'] = str(content_length)  
+        resp['Last-Modified'] = datetime.fromisoformat(stmt_dict['stored']).strftime("%a, %d-%b-%Y %H:%M:%S %Z")
+    
     # Complex GET
     else:
-        resp, content_length = process_complex_get(req_dict)
-    resp['Content-Length'] = str(content_length)
+        resp, content_length, stmt_result = process_complex_get(req_dict)
+        
+        latest_stored = datetime.min
+        for stmt in stmt_result["statements"]:
+            stored = datetime.fromisoformat(stmt['stored'])
+            if stored > latest_stored:
+                latest_stored = stored
+
+        resp['Content-Length'] = str(content_length)               
+        resp['Last-Modified'] = latest_stored.strftime("%a, %d-%b-%Y %H:%M:%S %Z")
 
     return resp
 
@@ -353,8 +379,9 @@ def activity_state_get(req_dict):
                 response = HttpResponse(resource.state.read(), content_type=resource.content_type)
             else:
                 response = HttpResponse(resource.json_state, content_type=resource.content_type)
-            
+  
             response['ETag'] = f'"{resource.etag}"' 
+            response['Last-Modified'] = resource.updated.strftime("%a, %d-%b-%Y %H:%M:%S %Z")
         
         # no state id means we want an array of state ids
         else:
@@ -413,6 +440,9 @@ def activity_profile_get(req_dict):
             response = HttpResponse(resource.json_profile, content_type=resource.content_type)
         
         response['ETag'] = '"%s"' % resource.etag
+
+        #MB place our header (updated is saved as a datetime field, so it doesn't need to be pulled from isoformat)
+        response['Last-Modified'] = resource.updated.strftime("%a, %d-%b-%Y %H:%M:%S %Z")
         return response
 
     # Return IDs of profiles stored since profileId was not submitted
@@ -495,6 +525,8 @@ def agent_profile_get(req_dict):
                 response = HttpResponse(resource.json_profile, content_type=resource.content_type)
             
             response['ETag'] = '"%s"' % resource.etag
+            #place our header (updated is saved as a datetime field, so it doesn't need to be pulled from isoformat)
+            response['Last-Modified'] = resource.updated.strftime("%a, %d-%b-%Y %H:%M:%S %Z")
             return response
         
         else:
