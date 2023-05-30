@@ -7,7 +7,7 @@ import math
 
 from urllib.parse import parse_qs, parse_qsl, urlparse, unquote_plus
 
-from datetime import datetime
+from datetime import datetime, timezone
 from isodate.isodates import parse_date
 from isodate.isodatetime import parse_datetime
 from isodate.isoerror import ISO8601Error
@@ -166,3 +166,13 @@ def truncate_duration(duration):
         return unicodedata.normalize("NFKD", duration.replace(seconds_str, str(seconds_truncated) + 'S'))
     else:
         return duration
+
+def last_modified_from_statements(statements: list) -> datetime:
+
+    latest_stored = datetime.min.replace(tzinfo=timezone.utc)
+    for stmt in statements:
+        stored = datetime.fromisoformat(stmt['stored'])
+        if stored.astimezone(timezone.utc) > latest_stored.astimezone(timezone.utc):
+            latest_stored = stored
+
+    return latest_stored

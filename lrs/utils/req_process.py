@@ -12,7 +12,7 @@ from django.http import HttpResponse, HttpResponseNotFound, JsonResponse
 from django.conf import settings
 from django.utils.timezone import utc
 
-from . import truncate_duration
+from . import truncate_duration, last_modified_from_statements
 from .retrieve_statement import complex_get, parse_more_request
 from ..exceptions import NotFound
 from ..models import Statement, Agent, Activity
@@ -225,14 +225,9 @@ def statements_more_get(req_dict):
         else:
             resp = HttpResponse(json.dumps(stmt_result), content_type=mime_type, status=200)
 
-    resp['Content-Length'] = str(content_length)
+    latest_stored = last_modified_from_statements(stmt_result["statements"])
 
-    latest_stored = datetime.min
-    for stmt in stmt_result["statements"]:
-        stored = datetime.fromisoformat(stmt['stored'])
-        if stored > latest_stored.astimezone(stored.tzinfo):
-            latest_stored = stored
-                                                            
+    resp['Content-Length'] = str(content_length)
     resp['Last-Modified'] = latest_stored.strftime("%a, %d-%b-%Y %H:%M:%S %Z")
    
     return resp
@@ -249,13 +244,13 @@ def statements_get(req_dict):
         stmt_dict = st.to_dict(ret_format=req_dict['params']['format'])
         
         if req_dict['params']['attachments']:
-            stmt_result, mime_type, content_length = build_response(stmt_dict, True)
-            resp = HttpResponse(stmt_result, content_type=mime_type, status=200)
+            response_body, mime_type, content_length = build_response(stmt_dict, True)
+            resp = HttpResponse(response_body, content_type=mime_type, status=200)
         else:
-            stmt_result = json.dumps(stmt_dict, sort_keys=False)
-            resp = HttpResponse(stmt_result, content_type=mime_type, status=200)
+            response_body = json.dumps(stmt_dict, sort_keys=False)
+            resp = HttpResponse(response_body, content_type=mime_type, status=200)
             
-            content_length = len(stmt_result)
+            content_length = len(response_body)
 
         resp['Content-Length'] = str(content_length)  
         resp['Last-Modified'] = datetime.fromisoformat(stmt_dict['stored']).strftime("%a, %d-%b-%Y %H:%M:%S %Z")
@@ -264,11 +259,7 @@ def statements_get(req_dict):
     else:
         resp, content_length, stmt_result = process_complex_get(req_dict)
         
-        latest_stored = datetime.min
-        for stmt in stmt_result["statements"]:
-            stored = datetime.fromisoformat(stmt['stored'])
-            if stored > latest_stored.astimezone(stored.tzinfo):
-                latest_stored = stored
+        latest_stored = last_modified_from_statements(stmt_result["statements"])
 
         resp['Content-Length'] = str(content_length)               
         resp['Last-Modified'] = latest_stored.strftime("%a, %d-%b-%Y %H:%M:%S %Z")
