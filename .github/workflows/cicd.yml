@@ -41,37 +41,39 @@ jobs:
           pip3 install -r requirements.txt
           python3 -m unittest discover ./tests
 
-  deploy-dev:
-    runs-on: ubuntu-latest
-    environment: dev
-    needs: build-and-test
-    steps:
-      - name: Configure SSH
-        run: |
-          echo "Deployed on dev successfully"
-          # mkdir -p ~/.ssh
-          # echo "${{ secrets.ADL_WEB_SSH_KEY }}" > ~/.ssh/id_rsa
-          # chmod 600 ~/.ssh/id_rsa
-          # ssh-keyscan lrrs.ci.adlnet.gov >> ~/.ssh/known_hosts
-
-      # - name: Deploy code on Dev
-      #   run: |
-      #     ssh ubuntu@lrrs.ci.adlnet.gov "cd /home/ubuntu/lrs-test-frontend && git pull origin ${GITHUB_REF#refs/heads/} && sudo docker-compose up -d --build"
-
-  # deploy-staging:
+  # deploy-dev:
   #   runs-on: ubuntu-latest
-  #   environment: staging
-  #   needs:
-  #     - build-and-test
-  #     - deploy-dev
+  #   environment: dev
+  #   needs: build-and-test
   #   steps:
   #     - name: Configure SSH
   #       run: |
   #         mkdir -p ~/.ssh
-  #         echo "${{ secrets.ADL_STAGIGN_SSH_KEY }}" > ~/.ssh/id_rsa
+  #         echo "${{ secrets.ADLNET_DEV_SSH_KEY }}" > ~/.ssh/id_rsa
   #         chmod 600 ~/.ssh/id_rsa
-  #         ssh-keyscan lrstest.staging.adlnet.gov >> ~/.ssh/known_hosts
+  #         ssh-keyscan "${{ secrets.ADLNET_DEV_HOST }} >> ~/.ssh/known_hosts
 
-  #     - name: Deploy code on Staging
+  #     - name: Deploy code on Dev
   #       run: |
-  #         ssh ubuntu@lrstest.staging.adlnet.gov "cd /home/ubuntu/lrs-test-frontend && git pull origin ${GITHUB_REF#refs/heads/} && sudo docker-compose up -d --build"
+  #         ssh ${{ secrets.ADLNET_DEV_HOST_USER }}@${{ secrets.ADLNET_DEV_HOST }} "cd ${{ secrets.ADLNET_DEV_PROJECT_DIR }} && git pull origin ${GITHUB_REF#refs/heads/} && sudo docker-compose up -d --build"
+  
+  deploy-staging:
+    runs-on: ubuntu-latest
+    environment: staging
+    needs:
+      - build-and-test
+      #- deploy-dev
+    steps:
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.ADLNET_STAGING_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan "${{ secrets.ADLNET_STAGING_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy code on Staging
+        run: |
+          ssh ${{ secrets.ADLNET_STAGING_HOST_USER }}@${{ secrets.ADLNET_STAGING_HOST }} "
+          cd ${{ secrets.ADLNET_STAGING_PROJECT_DIR }} && \
+          git pull origin ${GITHUB_REF#refs/heads/} && \
+          echo 'deplooyed successfully on server'"
