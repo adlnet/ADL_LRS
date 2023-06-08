@@ -8,7 +8,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
+        python-version: ["3.7"]
+        #python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
 
     steps:
       - name: Checkout code
@@ -75,5 +76,23 @@ jobs:
         run: |
           ssh ${{ secrets.ADLNET_STAGING_HOST_USER }}@${{ secrets.ADLNET_STAGING_HOST }} "
           cd ${{ secrets.ADLNET_STAGING_PROJECT_DIR }} && \
+          
+          echo 'Pulling Latest Code from Repository...' && \
           git pull origin ${GITHUB_REF#refs/heads/} && \
-          echo 'deplooyed successfully on server'"
+          
+          echo 'Copying Required Config files...' && \
+          sudo cp /home/ubuntu/workflow/settings.ini /home/ubuntu/ADL_LRS/settings.ini && \
+          sudo cp /home/ubuntu/workflow/docker/settings.ini /home/ubuntu/ADL_LRS/docker/lrs/settings.ini && \
+          sudo cp /home/ubuntu/workflow/.env /home/ubuntu/ADL_LRS/.env && \
+
+          echo 'Changing ownership of docker directory...' && \
+          sudo usermod -aG docker $USER && \
+
+          echo 'Copying installing ssl certificate...' && \
+          sudo ./init-ssl.sh localhost && \
+
+          echo 'Rebuilding Docker Containers..' && \
+          sudo docker-compose stop && \
+          sudo docker-compose build --no-cache && \
+          docker-compose up -d && \
+          echo 'deployed successfully on server'"
