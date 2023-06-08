@@ -91,5 +91,5 @@ jobs:
           echo 'Rebuilding Docker Containers..' && \
           sudo docker-compose stop && \
           sudo docker-compose build --no-cache && \
-          docker-compose up -d && \
+          sudo docker-compose up -d && \
           echo 'deployed successfully on server'"
