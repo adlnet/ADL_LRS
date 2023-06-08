@@ -85,9 +85,6 @@ jobs:
           #sudo cp /home/ubuntu/workflow/docker/settings.ini /home/ubuntu/ADL_LRS/docker/lrs/settings.ini && \
           sudo cp /home/ubuntu/workflow/.env /home/ubuntu/ADL_LRS/.env && \
 
-          echo 'Changing ownership of docker directory...' && \
-          sudo usermod -aG docker $USER && \
-
           echo 'Copying installing ssl certificate...' && \
           sudo ./init-ssl.sh localhost && \
 
