@@ -40,7 +40,7 @@ jobs:
       - name: Build and test
         run: |
           pip3 install -r requirements.txt
-          python3 -m unittest discover ./tests
+          ./test-lrs.sh
 
   # deploy-dev:
   #   runs-on: ubuntu-latest
