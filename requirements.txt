@@ -1,7 +1,7 @@
 Django==3.2.19
 amqp==5.0.9
 bcoding==1.5
-celery==5.2.3
+celery==5.3
 django-cors-headers==3.10.1
 django-defender==0.9.6
 django-jsonify==0.3.0
