@@ -14,7 +14,8 @@ from django.core.cache import caches
 from django.urls import reverse
 from django.http import QueryDict
 
-from . import convert_to_datatype, convert_post_body_to_dict, validate_timestamp, truncate_duration
+from . import convert_to_datatype, convert_post_body_to_dict, validate_timestamp
+from .time import truncate_duration
 from .etag import get_etag_info
 from ..exceptions import OauthUnauthorized, OauthBadRequest, ParamError, BadRequest
 

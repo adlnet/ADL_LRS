@@ -12,7 +12,7 @@ from django.http import HttpResponse, HttpResponseNotFound, JsonResponse
 from django.conf import settings
 from django.utils.timezone import utc
 
-from . import truncate_duration, last_modified_from_statements
+from .time import truncate_duration, last_modified_from_statements
 from .retrieve_statement import complex_get, parse_more_request
 from ..exceptions import NotFound
 from ..models import Statement, Agent, Activity

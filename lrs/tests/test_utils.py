@@ -1,16 +1,10 @@
 import unittest
+import sys
 
-from datetime import datetime, timezone
+sys.path.append("../..")
 
-def last_modified_from_statements(statements: list) -> datetime:
-
-    latest_stored = datetime.min.replace(tzinfo=timezone.utc)
-    for stmt in statements:
-        stored = datetime.fromisoformat(stmt['stored'])
-        if stored.astimezone(timezone.utc) > latest_stored.astimezone(timezone.utc):
-            latest_stored = stored
-
-    return latest_stored
+from datetime import datetime
+from ..utils.time import last_modified_from_statements
 
 class TestUtilityMethods(unittest.TestCase):
 
@@ -27,7 +21,6 @@ class TestUtilityMethods(unittest.TestCase):
         last_modified = last_modified_from_statements(statements)
 
         self.assertTrue(expected_time == last_modified)
-
 
 if __name__=="__main__":
     unittest.main()
