@@ -1,12 +1,12 @@
 ﻿# ADL LRS
 
-#### Installation tested on <b>Ubuntu 16.04</b> machine with Python 3.9. <b>Ubuntu 20.04+</b> is recommended. Updated to be compliant with the xAPI 2.0 spec.
+_Note:_ This LRS has recently been updated to match the IEEE 9274.1.1 Base Standard -- also known as xAPI 2.0.
 
-This version is stable, but only intended to support a small amount of users as a proof of concept. While it uses programming best practices, it is not designed to take the place of an enterprise system.
+This version is stable, but only intended to support a small amount of users as a proof of concept.
 
-## Installation (with Docker)
+## Installation
 
-We recommend installing the ADL LRS via Docker. You can find detailed instructions on this process [here](https://github.com/adlnet/ADL_LRS/blob/python3/docker/README.MD).
+The simplest way to install the ADL LRS is via Docker and Docker Compose. You can find detailed instructions on this process [here](https://github.com/adlnet/ADL_LRS/wiki).
 
 ## Helpful Information
 
