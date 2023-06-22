@@ -16,7 +16,7 @@ from ..models import Statement, Agent
 from ..exceptions import NotFound
 
 
-def complex_get(param_dict, limit, language, stmt_format, attachments):
+def complex_get(param_dict, limit, language, stmt_format, attachments) -> dict:
     # keep track if a filter other than time or sequence is used
     reffilter = False
 
@@ -113,14 +113,14 @@ def complex_get(param_dict, limit, language, stmt_format, attachments):
                                                'object_agent', 'object_activity', 'object_substatement') \
         .prefetch_related('context_ca_parent', 'context_ca_grouping', 'context_ca_category', 'context_ca_other') \
         .filter(untilQ & sinceQ & authQ & agentQ & verbQ & activityQ & registrationQ).distinct()
+    
     # Workaround since flat doesn't work with UUIDFields
     st_ids = stmtset.values_list('statement_id')
     stmtset = [st_id[0] for st_id in st_ids]
 
     if reffilter:
         stmtset = stmtset + stmt_ref_search(stmtset, untilQ, sinceQ)
-        actual_length = Statement.objects.filter(
-            Q(statement_id__in=stmtset) & voidQ).distinct().count()        
+        actual_length = Statement.objects.filter(Q(statement_id__in=stmtset) & voidQ).distinct().count()        
     else:
         actual_length = len(stmtset)
 
@@ -150,7 +150,7 @@ def set_limit(req_limit):
     return req_limit
 
 
-def create_under_limit_stmt_result(stmt_set, stored, language, stmt_format):
+def create_under_limit_stmt_result(stmt_set, stored, language, stmt_format) -> dict:
     stmt_result = {}
     if stmt_set:
         stmt_set = Statement.objects.select_related('actor', 'verb', 'context_team', 'context_instructor', 'authority',
@@ -166,19 +166,21 @@ def create_under_limit_stmt_result(stmt_set, stored, language, stmt_format):
         stmt_result['more'] = ""
     return stmt_result
 
-
 def create_cache_key():
     # Create unique hash data to use for the cache key
-    hash_data = []
-    hash_data.append(str(datetime.now()))
-    hash_data.append(str(uuid.uuid4()))
+    hash_data = [
+        str(datetime.now()),
+        str(uuid.uuid4())
+    ]
 
     # Create cache key from hashed data (always 32 digits)
-    key = hashlib.md5(bcoding.bencode(hash_data)).hexdigest()
+    bcode = bcoding.bencode(hash_data)
+    assert bcode is not None
+
+    key = hashlib.md5(bcode).hexdigest()
     return key
 
-
-def create_over_limit_stmt_result(stmt_list, stored, limit, language, stmt_format, attachments):
+def create_over_limit_stmt_result(stmt_list, stored, limit, language, stmt_format, attachments) -> dict:
     # First time someone queries POST/GET
     result = {}
     cache_list = []

@@ -12,6 +12,8 @@ media/
 federated-analytics.js
 lrs/celery.py
 .vscode/
+lrs-env/
+docker-compose.dev.yml
 
 docker/lrs/settings.ini
 docker/settings.ini

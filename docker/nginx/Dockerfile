@@ -1,8 +1,6 @@
 FROM nginx:alpine
 
-ARG LRS_ROOT
 ARG HOSTNAME
-ARG PORT
 
 # Move our configuration into place
 #

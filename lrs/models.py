@@ -1,6 +1,8 @@
 import ast
 import json
 import uuid
+
+from typing import List
 from collections import OrderedDict
 
 from django.db import models, IntegrityError
@@ -22,8 +24,6 @@ ACTIVITY_PROFILE_UPLOAD_TO = "activity_profile"
 STATEMENT_ATTACHMENT_UPLOAD_TO = "attachment_payloads"
 
 # Called when a user is created, saved, or logging in
-
-
 def attach_user(sender, **kwargs):
     user = kwargs["instance"]
     if kwargs["created"]:
@@ -31,8 +31,8 @@ def attach_user(sender, **kwargs):
             **{'name': user.username, 'mbox': 'mailto:%s' % user.email, 'objectType': 'Agent'})[0]
         agent.user = user
         agent.save()
-post_save.connect(attach_user, sender=User)
 
+post_save.connect(attach_user, sender=User)
 
 class Verb(models.Model):
     verb_id = models.CharField(
@@ -90,12 +90,10 @@ class AgentManager(models.Manager):
         ifp_sent = [
             a for a in agent_ifps_can_only_be_one if kwargs.get(a, None) is not None]
         is_group = kwargs.get('objectType', None) == "Group"
-        has_member = False
+        member = None
         # Set member if incoming group
         if is_group:
             member = kwargs.pop('member', None)
-            if member:
-                has_member = True
         # Create agent based on IFP
         if ifp_sent:
             # Get IFP
@@ -128,7 +126,7 @@ class AgentManager(models.Manager):
                     created = False
 
             # For identified groups with members
-            if is_group and has_member:
+            if is_group and (member is not None):
                 # If newly created identified group add all of the incoming
                 # members
                 if created:
@@ -137,8 +135,7 @@ class AgentManager(models.Manager):
                     agent.save()
         # Only way it doesn't have IFP is if anonymous group
         else:
-            agent, created = self.retrieve_or_create_anonymous_group(
-                member, kwargs)
+            agent, created = self.retrieve_or_create_anonymous_group(member, kwargs)
         return agent, created
 
     def retrieve_or_create_anonymous_group(self, member, kwargs):
@@ -293,16 +290,56 @@ class Agent(models.Model):
         return json.dumps(self.to_dict(), sort_keys=False)
 
 
+class RelevantType(models.Model):
+    relevantType = models.CharField(max_length=MAX_URL_LENGTH, blank=True, db_index=True)
+
+
+class ContextAgent(models.Model):
+    objectType = models.CharField(max_length=14, blank=True, default="contextAgent")
+    agent = models.ForeignKey(
+        Agent, related_name="conag_agent", on_delete=models.SET_NULL, blank=True, db_index=True, null=True)
+    relevantType = models.ManyToManyField(RelevantType, blank=True, related_name="conag_relevantType")
+
+    def to_dict(self, ids_only=False):
+        ret = OrderedDict()
+        if self.agent:
+            ret['agent'] = self.agent.to_dict(ids_only)
+        if self.relevantType.all():
+            ret['relevantType'] = [relType.relevantType for relType in self.relevantType.all()]
+
+        ret['objectType'] = self.objectType
+
+        return ret
+
+
+class ContextGroup(models.Model):
+    objectType = models.CharField(max_length=14, blank=True, default="contextGroup")
+    group = models.ForeignKey(
+        Agent, related_name="congrp_group", on_delete=models.SET_NULL, blank=True, db_index=True, null=True)
+    relevantType = models.ManyToManyField(RelevantType, related_name="congrp_relevantType")
+
+    def to_dict(self, ids_only=False):
+        ret = OrderedDict()
+        if self.group:
+            ret['group'] = self.group.to_dict(ids_only)
+        if self.relevantType.all():
+            ret['relevantType'] = [relType.relevantType for relType in self.relevantType.all()]
+
+        ret['objectType'] = self.objectType
+
+        return ret
+
 class Activity(models.Model):
-    activity_id = models.CharField(
-        max_length=MAX_URL_LENGTH, db_index=True, unique=True)
+    activity_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True, unique=True)
     canonical_data = JSONField(default=dict)
     authority = models.ForeignKey(Agent, null=True, on_delete=models.CASCADE)
 
     def return_activity_with_lang_format(self, lang=None, ids_only=False):
         if ids_only:
             return {'id': self.activity_id}
+        
         ret = self.canonical_data
+        
         if 'objectType' not in self.canonical_data:
             ret['objectType'] = 'Activity'
         if 'definition' in self.canonical_data:
@@ -381,11 +418,19 @@ class SubStatement(models.Model):
         Activity, related_name="sub_context_ca_category")
     context_ca_other = models.ManyToManyField(
         Activity, related_name="sub_context_ca_other")
+
+    context_contextAgents = JSONField(default=list, blank=True)
+    context_contextGroups = JSONField(default=list, blank=True) 
+
     # context also has a stmt field which is a statementref
     context_statement = models.CharField(max_length=40, blank=True)
 
     def to_dict(self, lang=None, ids_only=False):
         ret = OrderedDict()
+
+        assert isinstance(self.actor, Agent)
+        assert isinstance(self.verb, Verb)
+
         ret['actor'] = self.actor.to_dict(ids_only)
         ret['verb'] = self.verb.return_verb_with_lang(lang, ids_only)
 
@@ -461,6 +506,13 @@ class SubStatement(models.Model):
             ret['context']['extensions'] = self.context_extensions
         if not ret['context']['contextActivities']:
             del ret['context']['contextActivities']
+
+
+        if self.context_contextAgents:
+            ret['context']['contextAgents'] = self.context_contextAgents
+        if self.context_contextGroups:
+            ret['context']['contextGroups'] = self.context_contextGroups
+
         if not ret['context']:
             del ret['context']
 
@@ -530,14 +582,14 @@ class Statement(models.Model):
     context_platform = models.CharField(max_length=50, blank=True)
     context_language = models.CharField(max_length=50, blank=True)
     context_extensions = JSONField(default=dict, blank=True)
-    context_ca_parent = models.ManyToManyField(
-        Activity, related_name="stmt_context_ca_parent")
-    context_ca_grouping = models.ManyToManyField(
-        Activity, related_name="stmt_context_ca_grouping")
-    context_ca_category = models.ManyToManyField(
-        Activity, related_name="stmt_context_ca_category")
-    context_ca_other = models.ManyToManyField(
-        Activity, related_name="stmt_context_ca_other")
+    context_ca_parent = models.ManyToManyField(Activity, related_name="stmt_context_ca_parent")
+    context_ca_grouping = models.ManyToManyField(Activity, related_name="stmt_context_ca_grouping")
+    context_ca_category = models.ManyToManyField(Activity, related_name="stmt_context_ca_category")
+    context_ca_other = models.ManyToManyField(Activity, related_name="stmt_context_ca_other")
+
+    context_contextAgents = JSONField(default=list, blank=True)
+    context_contextGroups = JSONField(default=list, blank=True) 
+
     # context also has a stmt field which is a statementref
     context_statement = models.CharField(max_length=40, blank=True)
     version = models.CharField(max_length=7)
@@ -553,6 +605,10 @@ class Statement(models.Model):
 
         ids_only = True if ret_format == 'ids' else False
         ret['id'] = str(self.statement_id)
+
+        assert isinstance(self.actor, Agent)
+        assert isinstance(self.verb, Verb)
+
         ret['actor'] = self.actor.to_dict(ids_only)
         ret['verb'] = self.verb.return_verb_with_lang(lang, ids_only)
 
@@ -613,33 +669,49 @@ class Statement(models.Model):
                 'id': self.context_statement, 'objectType': 'StatementRef'}
 
         ret['context']['contextActivities'] = OrderedDict()
+        
         if self.context_ca_parent.all():
             ret['context']['contextActivities']['parent'] = [cap.return_activity_with_lang_format(
                 lang, ids_only) for cap in self.context_ca_parent.all()]
+        
         if self.context_ca_grouping.all():
             ret['context']['contextActivities']['grouping'] = [cag.return_activity_with_lang_format(
                 lang, ids_only) for cag in self.context_ca_grouping.all()]
+        
         if self.context_ca_category.all():
             ret['context']['contextActivities']['category'] = [cac.return_activity_with_lang_format(
                 lang, ids_only) for cac in self.context_ca_category.all()]
+        
         if self.context_ca_other.all():
             ret['context']['contextActivities']['other'] = [cao.return_activity_with_lang_format(
                 lang, ids_only) for cao in self.context_ca_other.all()]
+        
         if self.context_extensions:
             ret['context']['extensions'] = self.context_extensions
+        
         if not ret['context']['contextActivities']:
             del ret['context']['contextActivities']
+
+        if self.context_contextAgents:
+            ret['context']['contextAgents'] = self.context_contextAgents
+        if self.context_contextGroups:
+            ret['context']['contextGroups'] = self.context_contextGroups
+
         if not ret['context']:
             del ret['context']
 
         ret['timestamp'] = self.timestamp.isoformat()
         ret['stored'] = self.stored.isoformat()
+        ret['version'] = self.version
+        
         if self.authority is not None:
             ret['authority'] = self.authority.to_dict(ids_only)
-        ret['version'] = self.version
-        if self.stmt_attachments.all():
-            ret['attachments'] = [a.return_attachment_with_lang(
-                lang) for a in self.stmt_attachments.all()]
+        
+        attachments_relation = getattr(self, "stmt_attachments", None)
+        if (attachments_relation is not None):
+            attachments: List[StatementAttachment] = attachments_relation.all()
+            ret['attachments'] = [a.return_attachment_with_lang(lang) for a in attachments]
+        
         return ret
 
     def get_a_name(self):
@@ -666,12 +738,13 @@ class AttachmentFileSystemStorage(FileSystemStorage):
     def get_available_name(self, name, max_length=None):
         return name
 
-    def _save(self, name, content, max_length=None):
+    def save(self, name: str, content, max_length=None):
         if self.exists(name):
             # if the file exists, do not call the superclasses _save method
             return name
+        
         # if the file is new, DO call it
-        return super(AttachmentFileSystemStorage, self)._save(name, content)
+        return super(FileSystemStorage, self).save(name, content, max_length=max_length)
 
 
 class StatementAttachment(models.Model):
@@ -696,8 +769,7 @@ class StatementAttachment(models.Model):
 
 class ActivityState(models.Model):
     state_id = models.CharField(max_length=MAX_URL_LENGTH)
-    updated = models.DateTimeField(
-        auto_now_add=True, blank=True, db_index=True)
+    updated = models.DateTimeField(auto_now_add=True, blank=True, db_index=True)
     activity_id = models.CharField(max_length=MAX_URL_LENGTH, db_index=True)
     registration_id = models.CharField(max_length=40, db_index=True)
     content_type = models.CharField(max_length=255, blank=True)

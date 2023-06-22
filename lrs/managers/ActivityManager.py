@@ -12,10 +12,15 @@ class ActivityManager():
         self.populate(data)
 
     def update_language_maps(self, incoming_act_def):
+
+        if self.activity is None:
+            return
+
         # If there was no definition in the canonical data, and there is an
         # incoming one, set it to incoming data
         if 'definition' not in self.activity.canonical_data and incoming_act_def:
             self.activity.canonical_data['definition'] = incoming_act_def
+        
         # Else there was existing canonical data, and there in an incoming one,
         # only update lang maps (name, desc, interaction activities)
         elif 'definition' in self.activity.canonical_data and incoming_act_def:
@@ -28,10 +33,12 @@ class ActivityManager():
             if 'description' not in self.activity.canonical_data['definition']:
                 self.activity.canonical_data['definition']['description'] = {}
 
-            self.activity.canonical_data['definition']['name'] = dict(list(self.activity.canonical_data['definition']['name'].items()) +
-                                                                      list(incoming_act_def['name'].items()))
-            self.activity.canonical_data['definition']['description'] = dict(list(self.activity.canonical_data['definition']['description'].items()) +
-                                                                             list(incoming_act_def['description'].items()))
+            updated_name = dict(list(self.activity.canonical_data['definition']['name'].items()) + list(incoming_act_def['name'].items()))
+            updated_desc = dict(list(self.activity.canonical_data['definition']['description'].items()) + list(incoming_act_def['description'].items()))
+
+            self.activity.canonical_data['definition']['name'] = updated_name
+            self.activity.canonical_data['definition']['description'] = updated_desc
+            
             if 'scale' in incoming_act_def and 'scale' in self.activity.canonical_data['definition']:
                 trans = {x['id']: x['description']
                          for x in incoming_act_def['scale']}
@@ -82,21 +89,17 @@ class ActivityManager():
                 can_define = True
                 try:
                     # Using get or create inside try for racing issue
-                    self.activity, act_created = Activity.objects.get_or_create(
-                        activity_id=activity_id, authority=self.auth)
+                    self.activity, act_created = Activity.objects.get_or_create(activity_id=activity_id, authority=self.auth)
                 except IntegrityError:
-                    self.activity = Activity.objects.get(
-                        activity_id=activity_id)
+                    self.activity = Activity.objects.get(activity_id=activity_id)
                     act_created = False
             # If activity DNE and cannot define - create activity without auth
             else:
                 try:
                     # Using get or create inside try for racing issue
-                    self.activity, act_created = Activity.objects.get_or_create(
-                        activity_id=activity_id)
+                    self.activity, act_created = Activity.objects.get_or_create(activity_id=activity_id)
                 except IntegrityError:
-                    self.activity = Activity.objects.get(
-                        activity_id=activity_id)
+                    self.activity = Activity.objects.get(activity_id=activity_id)
                     act_created = False
             # If you retrieved an activity that has no auth but user has define
             # permissions, user becomes authority over activity
