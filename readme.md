@@ -1,6 +1,6 @@
 ﻿# ADL LRS
 
-#### Installation tested on <b>Ubuntu 16.04</b> machine with Python 3.9. <b>Ubuntu 16.04+</b> is recommended. Updated to be compliant with the 1.0.3 xAPI spec.
+#### Installation tested on <b>Ubuntu 16.04</b> machine with Python 3.9. <b>Ubuntu 20.04+</b> is recommended. Updated to be compliant with the xAPI 2.0 spec.
 
 This version is stable, but only intended to support a small amount of users as a proof of concept. While it uses programming best practices, it is not designed to take the place of an enterprise system.
 
