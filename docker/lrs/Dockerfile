@@ -18,16 +18,16 @@ ENV DJANGO_ENV=prod
 ENV DOCKER_CONTAINER=1
 
 # Prepare the configuration
-COPY uwsgi/lrs_uwsgi.ini /etc/uwsgi/vassals/lrs_uwsgi.ini
-COPY uwsgi/lrs.service /lib/systemd/system/lrs.service
+COPY docker/lrs/uwsgi/lrs_uwsgi.ini /etc/uwsgi/vassals/lrs_uwsgi.ini
+COPY docker/lrs/uwsgi/lrs.service /lib/systemd/system/lrs.service
 
-COPY settings.ini /opt/lrs/ADL_LRS/adl_lrs/settings.ini
-COPY modified-fabfile.py /opt/lrs/ADL_LRS/fabfile.py
+COPY docker/lrs/settings.ini /opt/lrs/ADL_LRS/adl_lrs/settings.ini
+COPY docker/lrs/modified-fabfile.py /opt/lrs/ADL_LRS/fabfile.py
 
 # We'll need to run the setup
-COPY scripts/django-shell.sh /bin/django-shell.sh
-COPY scripts/setup-lrs.sh /bin/setup-lrs.sh
-COPY scripts/test-lrs.sh /bin/test-lrs.sh
-COPY scripts/setup-admin.sh /bin/setup-admin.sh
+COPY docker/lrs/scripts/django-shell.sh /bin/django-shell.sh
+COPY docker/lrs/scripts/setup-lrs.sh /bin/setup-lrs.sh
+COPY docker/lrs/scripts/test-lrs.sh /bin/test-lrs.sh
+COPY docker/lrs/scripts/setup-admin.sh /bin/setup-admin.sh
 
 CMD ["/bin/setup-lrs.sh"]
