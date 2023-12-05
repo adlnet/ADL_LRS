@@ -2,7 +2,7 @@ name: Deploy ADL LRS Application (Python)
 'on':
   push:
     branches:
-      - python3-xapi-2.0
+      - ci-testing
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
