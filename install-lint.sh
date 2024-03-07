@@ -63,7 +63,7 @@
 	echo "#====================================================#"
 	echo ""
  
- # Run Pylint on Dockerfile
+ # Run Pylint on python files
 	pylint *.py
  
 	echo ""
