@@ -8,7 +8,7 @@
 	echo ""
 
 # Install Hadolint
-	 wget -O hadolint https://github.com/hadolint/hadolint/releases/download/v2.12.0/hadolint-Linux-x86_64
+	wget -O hadolint https://github.com/hadolint/hadolint/releases/download/v2.12.0/hadolint-Linux-x86_64
 # Move to appropriate directory
 	mv hadolint /usr/local/bin/hadolint
 # Make file executable
@@ -35,5 +35,39 @@
 	echo ""
 	echo "#====================================================#"
 	echo "#      Dockerfile Linting Complete (Comments Above)"
+	echo "#====================================================#"
+	echo ""
+
+ # Simple script to install and run Pylint
+        echo ""
+	echo "#====================================================#"
+	echo "#        Installing Pylint"
+	echo "#====================================================#"
+	echo ""
+
+# Install Pylint
+	apt install pylint
+
+	echo ""
+	echo "#====================================================#"
+	echo "#        Pylint Installation Complete"
+	echo "#====================================================#"
+	echo ""
+ 
+# Check pylint version to make sure it is installed
+	pylint --version
+
+	echo ""
+	echo "#====================================================#"
+	echo "#       Now Running Pylint"
+	echo "#====================================================#"
+	echo ""
+ 
+ # Run Pylint on Dockerfile
+	pylint *.py
+ 
+	echo ""
+	echo "#====================================================#"
+	echo "#      Python Linting Complete (Comments Above)"
 	echo "#====================================================#"
 	echo ""
