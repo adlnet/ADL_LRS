@@ -77,8 +77,4 @@ jobs:
         run: |
           cd lrs-conformance-test-suite
           npm install
-          node ./bin/console_runner.js && \
-            --basicAuth && \
-            --authUser ${{ secrets.ADLNET_STAGING_LRS_USERNAME }} && \
-            --authPassword ${{ secrets.ADLNET_STAGING_LRS_PASSWORD }} && \
-            --endpoint ${{ secrets.ADLNET_STAGING_LRS_ENDPOINT }}
+          node ./bin/console_runner.js --basicAuth --authUser ${{ secrets.ADLNET_STAGING_LRS_USERNAME }} --authPassword ${{ secrets.ADLNET_STAGING_LRS_PASSWORD }} --endpoint ${{ secrets.ADLNET_STAGING_LRS_ENDPOINT }}
