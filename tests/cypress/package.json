@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "cypress": "npx cypress open",
+    "cypress": "npx cypress open --config-file ./cypress.local.config.js",
     "mocha": "mocha"
   },
   "author": "ADL Initiative",
