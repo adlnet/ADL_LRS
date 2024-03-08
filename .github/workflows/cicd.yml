@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - master
+      - adding-nodejs-tests
 
 jobs:
   build-and-test:
