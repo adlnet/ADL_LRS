@@ -70,6 +70,8 @@ jobs:
         with:
           owner: adlnet
           repository: lrs-conformance-test-suite
+          depth: 1
+          branch: master
 
       - name: Run LRS Conformance Suite
         run: |
