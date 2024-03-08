@@ -21,15 +21,17 @@ jobs:
       - name: Deploy code on Staging
         run: |
           echo "SSH into staging machine."
-          ssh ${{ secrets.ADLNET_STAGING_HOST_USER }}@${{ secrets.ADLNET_STAGING_HOST }}
-          cd ${{ secrets.ADLNET_STAGING_PROJECT_DIR }}
-          echo 'Pulling Latest Code from Repository...'
-          git pull
-          echo 'Rebuilding Docker Containers..'
-          sudo docker-compose stop
-          sudo docker-compose build --no-cache
-          sudo docker-compose up -d
-          echo 'deployed successfully on server'
+          ssh ${{ secrets.ADLNET_STAGING_HOST_USER }}@${{ secrets.ADLNET_STAGING_HOST }} 
+          "   
+            cd ${{ secrets.ADLNET_STAGING_PROJECT_DIR }}
+            echo 'Pulling Latest Code from Repository...'
+            git pull
+            echo 'Rebuilding Docker Containers..'
+            sudo docker-compose stop
+            sudo docker-compose build --no-cache
+            sudo docker-compose up -d
+            echo 'deployed successfully on server'
+          "
 
   cypress-testing:
     name: Cypress run
