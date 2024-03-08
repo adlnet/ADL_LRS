@@ -3,7 +3,7 @@ const { defineConfig } = require('cypress');
 module.exports = defineConfig({
   e2e: {
     specPattern: 'e2e/*.cy.{js,jsx,ts,tsx}',
-    baseUrl: process.env.LRS_HOSTNAME,
+    baseUrl: process.env.LRS_HOST_URL,
     experimentalStudio: true
   },
   env: {

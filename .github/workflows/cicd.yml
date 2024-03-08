@@ -102,7 +102,7 @@ jobs:
     env:
       LRS_USERNAME: ${{ secrets.ADLNET_STAGING_LRS_USERNAME }}
       LRS_PASSWORD: ${{ secrets.ADLNET_STAGING_LRS_PASSWORD }}
-      LRS_ENDPOINT: ${{ secrets.ADLNET_STAGING_LRS_ENDPOINT }}
+      LRS_HOST_URL: ${{ secrets.ADLNET_STAGING_LRS_HOST_URL }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -141,4 +141,4 @@ jobs:
             --basicAuth \
             --authUser $LRS_ADMIN_USER \
             --authPassword $LRS_ADMIN_PASS \
-            --endpoint "$LRS_ENDPOINT/xAPI
+            --endpoint "$LRS_ENDPOINT
