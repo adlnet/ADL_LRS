@@ -99,6 +99,10 @@ jobs:
   cypress-testing:
     name: Cypress run
     runs-on: ubuntu-22.04
+    env:
+      LRS_USERNAME: ${{ secrets.ADLNET_STAGING_LRS_USERNAME }}
+      LRS_PASSWORD: ${{ secrets.ADLNET_STAGING_LRS_PASSWORD }}
+      LRS_ENDPOINT: ${{ secrets.ADLNET_STAGING_LRS_ENDPOINT }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
