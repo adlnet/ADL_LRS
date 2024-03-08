@@ -9,9 +9,6 @@ jobs:
   deploy-staging:
     runs-on: ubuntu-latest
     environment: staging
-    needs:
-      - build-and-test
-      #- deploy-dev
     steps:
       - name: Configure SSH
         run: |
