@@ -42,23 +42,16 @@ jobs:
       LRS_PASSWORD: ${{ secrets.ADLNET_STAGING_LRS_PASSWORD }}
       LRS_HOST_URL: ${{ secrets.ADLNET_STAGING_LRS_HOST_URL }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Cypress run
         uses: cypress-io/github-action@v6
         with:
-          project: tests/cypress
+          working-directory: tests/cypress
 
   conformance-testing:
     runs-on: ubuntu-latest
     environment: staging
     needs:
       - deploy-staging
-    env:
-      LRS_USERNAME: ${{ secrets.ADLNET_STAGING_LRS_USERNAME }}
-      LRS_PASSWORD: ${{ secrets.ADLNET_STAGING_LRS_PASSWORD }}
-      LRS_ENDPOINT: ${{ secrets.ADLNET_STAGING_LRS_ENDPOINT }}
     steps:
       - name: Setup NodeJS
         uses: actions/setup-node@v3
