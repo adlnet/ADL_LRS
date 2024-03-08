@@ -48,7 +48,7 @@ jobs:
       - name: Cypress run
         uses: cypress-io/github-action@v6
         with:
-          project: ${{ secrets.ADLNET_STAGING_PROJECT_DIR }}/tests/cypress
+          project: tests/cypress
 
   conformance-testing:
     runs-on: ubuntu-latest
@@ -77,8 +77,8 @@ jobs:
         run: |
           cd lrs-conformance-test-suite
           npm install
-          node ./bin/console_runner.js 
-            --basicAuth \
-            --authUser $LRS_ADMIN_USER \
-            --authPassword $LRS_ADMIN_PASS \
-            --endpoint "$LRS_ENDPOINT
+          node ./bin/console_runner.js && \
+            --basicAuth && \
+            --authUser ${{ secrets.ADLNET_STAGING_LRS_USERNAME }} && \
+            --authPassword ${{ secrets.ADLNET_STAGING_LRS_PASSWORD }} && \
+            --endpoint ${{ secrets.ADLNET_STAGING_LRS_ENDPOINT }}
