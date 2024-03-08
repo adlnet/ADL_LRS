@@ -1,0 +1,18 @@
+{
+  "name": "cypress-testing",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "cypress": "npx cypress open",
+    "mocha": "mocha"
+  },
+  "author": "ADL Initiative",
+  "contributors": [
+    "Trey Hayden <trey.hayden.ctr@adlnet.gov>"
+  ],
+  "license": "ISC",
+  "devDependencies": {
+    "cypress": "13.6.6"
+  }
+}

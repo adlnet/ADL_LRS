@@ -1,14 +1,15 @@
 name: Deploy ADL LRS Application (Python)
-'on':
+on:
   push:
     branches:
-      - python3-xapi-2.0
+      - master
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.7"]
+        python-version: ["3.9"]
         #python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
 
     steps:
@@ -37,10 +38,10 @@ jobs:
       #   run: |
       #     pytest
 
-      - name: Build and test
-        run: |
-          pip3 install -r requirements.txt
-          ./test-lrs.sh
+      # - name: Build and test
+      #   run: |
+      #     pip3 install -r requirements.txt
+      #     ./test-lrs.sh
 
   # deploy-dev:
   #   runs-on: ubuntu-latest
@@ -80,16 +81,59 @@ jobs:
           echo 'Pulling Latest Code from Repository...' && \
           git pull origin ${GITHUB_REF#refs/heads/} && \
           
-          echo 'Copying Required Config files...' && \
-          sudo cp /home/ubuntu/workflow/settings.ini /home/ubuntu/ADL_LRS/settings.ini && \
-          #sudo cp /home/ubuntu/workflow/docker/settings.ini /home/ubuntu/ADL_LRS/docker/lrs/settings.ini && \
-          sudo cp /home/ubuntu/workflow/.env /home/ubuntu/ADL_LRS/.env && \
+        # echo 'Copying Required Config files...' && \
+        # sudo cp /home/ubuntu/workflow/settings.ini /home/ubuntu/ADL_LRS/settings.ini && \
+        # #sudo cp /home/ubuntu/workflow/docker/settings.ini /home/ubuntu/ADL_LRS/docker/lrs/settings.ini && \
+        # sudo cp /home/ubuntu/workflow/.env /home/ubuntu/ADL_LRS/.env && \
 
-          echo 'Copying installing ssl certificate...' && \
-          sudo ./init-ssl.sh localhost && \
+        # echo 'Copying installing ssl certificate...' && \
+        # sudo ./init-ssl.sh localhost && \
 
           echo 'Rebuilding Docker Containers..' && \
           sudo docker-compose stop && \
           sudo docker-compose build --no-cache && \
           sudo docker-compose up -d && \
           echo 'deployed successfully on server'"
+
+  cypress-testing:
+    name: Cypress run
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cypress run
+        uses: cypress-io/github-action@v6
+        with:
+          project: ${{ secrets.ADLNET_STAGING_PROJECT_DIR }}/tests/cypress
+
+  conformance-testing:
+    runs-on: ubuntu-latest
+    environment: staging
+    needs:
+      - deploy-staging
+    env:
+      LRS_USERNAME: ${{ secrets.ADLNET_STAGING_LRS_USERNAME }}
+      LRS_PASSWORD: ${{ secrets.ADLNET_STAGING_LRS_PASSWORD }}
+      LRS_ENDPOINT: ${{ secrets.ADLNET_STAGING_LRS_ENDPOINT }}
+    steps:
+      - name: Setup NodeJS
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18.x
+      
+      - name: Clone the CTS Repo
+        uses: GuillaumeFalourd/clone-github-repo-action@main
+        with:
+          owner: adlnet
+          repository: lrs-conformance-test-suite
+
+      - name: Run LRS Conformance Suite
+        run: |
+          cd lrs-conformance-test-suite
+          npm install
+          node ./bin/console_runner.js 
+            --basicAuth \
+            --authUser $LRS_ADMIN_USER \
+            --authPassword $LRS_ADMIN_PASS \
+            --endpoint "$LRS_ENDPOINT/xAPI

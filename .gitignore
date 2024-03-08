@@ -21,3 +21,6 @@ settings.ini
 adl_lrs/settings.ini
 docker/data
 # *.conf
+node_modules
+package-lock.json
+scratch
