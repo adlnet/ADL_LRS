@@ -12,6 +12,7 @@ jobs:
     steps:
       - name: Configure SSH
         run: |
+          echo "Configuring SSH to reach staging instance."
           mkdir -p ~/.ssh
           echo "${{ secrets.ADLNET_STAGING_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
@@ -19,6 +20,7 @@ jobs:
 
       - name: Deploy code on Staging
         run: |
+          echo "SSH into staging machine."
           ssh ${{ secrets.ADLNET_STAGING_HOST_USER }}@${{ secrets.ADLNET_STAGING_HOST }}
           cd ${{ secrets.ADLNET_STAGING_PROJECT_DIR }}
           echo 'Pulling Latest Code from Repository...'
