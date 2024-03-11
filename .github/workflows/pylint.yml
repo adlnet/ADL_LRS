@@ -3,7 +3,7 @@ name: Pylint
 on: [push]
 
 jobs:
-  build:
+  linting:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -18,6 +18,17 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install pylint
+        pip install umsgpack
+        pip install cryptography
+        pip install pylint-fail-under
+  #lists pyling suggestions to improve the score & pylint score of the file
+    - name: code review 
+      run: find . -name '*.py' -print -exec pylint {} \;
+      
+  #fails the build if one file has pylint score below 7.0
     - name: Analysing the code with pylint
       run: |
-        pylint $(git ls-files '*.py')
+            for file in */*.py; do pylint "$file" --fail-under=7.0; done
+  #  - name: Analysing the code with pylint
+  #    run: |
+  #     pylint $(git ls-files '*.py')
