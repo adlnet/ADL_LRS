@@ -4,7 +4,7 @@
  # Simple script to install and run ESlint
         echo ""
 	echo "#====================================================#"
-	echo "#        Installing and Configuring ESlint
+	echo "#        Installing and Configuring ESlint"
 	echo "#====================================================#"
 	echo ""
 
@@ -41,6 +41,6 @@
  
 	echo ""
 	echo "#====================================================#"
-	echo "#      NodeJS Linting Complete (Comments Above)"
+	echo "#      NodeJS Linting Complete (Comments Above) "
 	echo "#====================================================#"
 	echo ""
