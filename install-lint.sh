@@ -1,5 +1,5 @@
 #!/bin/bash
-:'
+<#
 # Simple script to install and run Hadolint
         echo ""
 	echo "#====================================================#"
@@ -71,7 +71,7 @@
 	echo "#      Python Linting Complete (Comments Above)"
 	echo "#====================================================#"
 	echo ""
-'
+#>
  # Simple script to install and run ESlint
         echo ""
 	echo "#====================================================#"
