@@ -12,7 +12,7 @@
 	sudo apt-get install npm
 # Install eslint if not already intsalled
 	npm install --save-dev eslint
-	sudo apt install eslint -g
+	#sudo apt install eslint -g
 
 	chmod -R a+x node_modules
 
