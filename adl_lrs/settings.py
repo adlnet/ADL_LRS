@@ -15,6 +15,9 @@ config.read(SETTINGS_DIR+'/settings.ini')
 # If you want to debug
 DEBUG = config.getboolean('debug', 'DEBUG')
 
+# Support proxy https (Ex: Amazon ALB)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 # Set these email values to send the reset password link
 # If you do not want this functionality just comment out the
 # Forgot Password? link in templates/registration/login.html
