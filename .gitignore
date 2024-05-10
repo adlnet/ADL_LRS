@@ -21,3 +21,5 @@ settings.ini
 adl_lrs/settings.ini
 docker/data
 # *.conf
+
+scratch/
