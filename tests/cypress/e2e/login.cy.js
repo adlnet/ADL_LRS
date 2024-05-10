@@ -6,8 +6,8 @@ describe("Logged-In Behavior", () => {
   
     it("Allows Admin to Log In.", () => {
       
-      let adminName = Cypress.env("LRS_ADMIN_NAME");
-      let adminPass = Cypress.env("LRS_ADMIN_PASS");
+      let adminName = Cypress.env("LRS_USERNAME");
+      let adminPass = Cypress.env("LRS_PASSWORD");
       
       cy.get('#menuLink1').click();
 

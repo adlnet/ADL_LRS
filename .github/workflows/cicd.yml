@@ -31,6 +31,13 @@ jobs:
           sudo docker-compose up -d
           echo 'deployed successfully on server' "
 
+      - name: Check the deployed service URL
+        uses: jtalk/url-health-check-action@v4
+        with:
+          url: ${{ secrets.ADLNET_STAGING_LRS_HOST_URL }}
+          max-attempts: 10
+          retry-delay: 10s
+
   cypress-testing:
     name: Cypress run
     environment: staging
@@ -42,10 +49,13 @@ jobs:
       LRS_PASSWORD: ${{ secrets.ADLNET_STAGING_LRS_PASSWORD }}
       LRS_HOST_URL: ${{ secrets.ADLNET_STAGING_LRS_HOST_URL }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        
       - name: Cypress run
         uses: cypress-io/github-action@v6
         with:
-          working-directory: tests/cypress
+          working-directory: ./tests/cypress
 
   conformance-testing:
     runs-on: ubuntu-latest
@@ -64,7 +74,7 @@ jobs:
           owner: adlnet
           repository: lrs-conformance-test-suite
           depth: 1
-          branch: master
+          branch: adding-back-compat
 
       - name: Run LRS Conformance Suite
         run: |
