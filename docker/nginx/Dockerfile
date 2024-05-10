@@ -21,5 +21,6 @@ COPY lrs-static /opt/lrs/lrs-static
 #
 RUN cat /etc/nginx/nginx.conf \
 	| envsubst '$HOSTNAME' \
-	| tee /tmp/nginx.conf
+	| tee /tmp/nginx.conf \
+	| > dev/null
 RUN mv /tmp/nginx.conf /etc/nginx/nginx.conf
