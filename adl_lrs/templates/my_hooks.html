@@ -20,7 +20,7 @@
                         <h5 class="email-name"><span class="appname">{{ h.name }}</span></h5>
                         <h4 class="email-subject">
                             <a class="show_filters" href='#'>Filters</a>
-                            <span class="hide-info" style="display:none">{{ h.filters|jsonify }}</span>                               
+                            <span id="filter-content" class="hide-info" style="display:none">{{ h.filters|escapejs }}</span>                               
                         </h4>
                         <h4 class="email-subject">
                             <a class="delete_hook" href='#'>Delete</a>
@@ -93,8 +93,9 @@
 <script type="text/javascript">
     $(document).ready(function() {
         $('.show_filters').click(function(){
-            var filters = JSON.parse($(this).next('span').text());
-            alert(JSON.stringify(filters, null, 4));
+            let filters = $("#filter-content").text();
+            let filtersParseable = `"${filters}"`;
+            alert(JSON.stringify(JSON.parse(filtersParseable), null, 4));
         });
         $('.delete_hook').click(function(){
             var hookId = $(this).next('span').text();
