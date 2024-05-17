@@ -201,7 +201,7 @@ def statements_put(req_dict):
         Statement.objects.filter(statement_id__in=stmts_to_void).update(voided=True)
     if settings.USE_HOOKS:
         check_statement_hooks.delay(stmt_ids)
-    return HttpResponse("No Content", status=204)
+    return HttpResponse("", status=204)
 
 
 def statements_more_get(req_dict):
