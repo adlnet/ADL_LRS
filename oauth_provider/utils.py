@@ -103,7 +103,7 @@ def get_oauth_request(request):
                                           'QUERY_STRING', '')
                                       )
 
-    logging.debug(oauth_request)
+    raise Exception(oauth_request)
 
     return oauth_request
 
