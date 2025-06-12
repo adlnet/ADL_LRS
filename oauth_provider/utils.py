@@ -17,6 +17,8 @@ from django.contrib.auth import authenticate
 
 from .consts import MAX_URL_LENGTH
 
+import logging
+
 OAUTH_REALM_KEY_NAME = getattr(settings, 'OAUTH_REALM_KEY_NAME', '')
 OAUTH_SIGNATURE_METHODS = getattr(settings, 'OAUTH_SIGNATURE_METHODS', [
                                   'plaintext', 'hmac-sha1', 'rsa-sha1'])
@@ -110,25 +112,33 @@ def verify_oauth_request(request, oauth_request, consumer, token=None):
     if not store.check_nonce(request, oauth_request, oauth_request['oauth_nonce'], oauth_request['oauth_timestamp']):
         return False
 
-    # Verify request
-    try:
-        oauth_server = oauth.Server()
-        oauth_server.add_signature_method(oauth.SignatureMethod_HMAC_SHA1())
-        oauth_server.add_signature_method(oauth.SignatureMethod_PLAINTEXT())
-        oauth_server.add_signature_method(SignatureMethod_RSA_SHA1())
+    logging.error("Attempt OAuth Request Verification ...")
 
-        # Ensure the passed keys and secrets are ascii, or HMAC will complain.
-        consumer = oauth.Consumer(consumer.key.encode(
-            'ascii', 'ignore'), consumer.secret.encode('ascii', 'ignore'))
-        if token is not None:
-            token = oauth.Token(token.key.encode(
-                'ascii', 'ignore'), token.secret.encode('ascii', 'ignore'))
+    # # Verify request
+    # try:
 
-        oauth_server.verify_request(oauth_request, consumer, token)
-    except oauth.Error:
-        return False
+    oauth_server = oauth.Server()
+    oauth_server.add_signature_method(oauth.SignatureMethod_HMAC_SHA1())
+    oauth_server.add_signature_method(oauth.SignatureMethod_PLAINTEXT())
+    oauth_server.add_signature_method(SignatureMethod_RSA_SHA1())
+
+    # Ensure the passed keys and secrets are ascii, or HMAC will complain.
+    consumer = oauth.Consumer(consumer.key.encode(
+        'ascii', 'ignore'), consumer.secret.encode('ascii', 'ignore'))
+    if token is not None:
+        token = oauth.Token(token.key.encode(
+            'ascii', 'ignore'), token.secret.encode('ascii', 'ignore'))
+
+    logging.error("Verifying OAuth Request ...")
+
+    oauth_server.verify_request(oauth_request, consumer, token)
 
     return True
+
+    # except oauth.Error:
+    #     return False
+
+    # return True
 
 
 def is_xauth_request(request):

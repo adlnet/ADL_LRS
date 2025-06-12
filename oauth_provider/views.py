@@ -22,6 +22,8 @@ from .utils import is_xauth_request
 from .consts import OUT_OF_BAND
 from .models import Token
 
+import logging
+
 OAUTH_AUTHORIZE_VIEW = 'OAUTH_AUTHORIZE_VIEW'
 OAUTH_CALLBACK_VIEW = 'OAUTH_CALLBACK_VIEW'
 
