@@ -103,7 +103,7 @@ def get_oauth_request(request):
                                           'QUERY_STRING', '')
                                       )
 
-    raise Exception(oauth_request)
+    # raise Exception(oauth_request)
 
     return oauth_request
 
@@ -133,6 +133,8 @@ def verify_oauth_request(request, oauth_request, consumer, token=None):
             'ascii', 'ignore'), token.secret.encode('ascii', 'ignore'))
 
     logging.error("Verifying OAuth Request ...")
+
+    raise Exception(consumer.secret)
 
     oauth_server.verify_request(oauth_request, consumer, token)
 
