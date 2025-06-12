@@ -95,7 +95,7 @@ def get_oauth_request(request):
         scheme = request.META["HTTP_X_FORWARDED_PROTO"]
         absolute_uri = urlunparse((scheme, ) + urlparse(absolute_uri)[1:])
 
-    return oauth.Request.from_request(request.method,
+    oauth_request = oauth.Request.from_request(request.method,
                                       absolute_uri,
                                       headers=auth_header,
                                       parameters=parameters,
@@ -103,6 +103,9 @@ def get_oauth_request(request):
                                           'QUERY_STRING', '')
                                       )
 
+    logging.debug(oauth_request)
+
+    return oauth_request
 
 def verify_oauth_request(request, oauth_request, consumer, token=None):
     """ Helper function to verify requests. """
