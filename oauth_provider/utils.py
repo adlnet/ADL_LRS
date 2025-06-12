@@ -17,8 +17,6 @@ from django.contrib.auth import authenticate
 
 from .consts import MAX_URL_LENGTH
 
-import logging
-
 OAUTH_REALM_KEY_NAME = getattr(settings, 'OAUTH_REALM_KEY_NAME', '')
 OAUTH_SIGNATURE_METHODS = getattr(settings, 'OAUTH_SIGNATURE_METHODS', [
                                   'plaintext', 'hmac-sha1', 'rsa-sha1'])
@@ -95,7 +93,7 @@ def get_oauth_request(request):
         scheme = request.META["HTTP_X_FORWARDED_PROTO"]
         absolute_uri = urlunparse((scheme, ) + urlparse(absolute_uri)[1:])
 
-    oauth_request = oauth.Request.from_request(request.method,
+    return oauth.Request.from_request(request.method,
                                       absolute_uri,
                                       headers=auth_header,
                                       parameters=parameters,
@@ -103,9 +101,6 @@ def get_oauth_request(request):
                                           'QUERY_STRING', '')
                                       )
 
-    # raise Exception(oauth_request)
-
-    return oauth_request
 
 def verify_oauth_request(request, oauth_request, consumer, token=None):
     """ Helper function to verify requests. """
@@ -115,35 +110,25 @@ def verify_oauth_request(request, oauth_request, consumer, token=None):
     if not store.check_nonce(request, oauth_request, oauth_request['oauth_nonce'], oauth_request['oauth_timestamp']):
         return False
 
-    logging.error("Attempt OAuth Request Verification ...")
+    # Verify request
+    try:
+        oauth_server = oauth.Server()
+        oauth_server.add_signature_method(oauth.SignatureMethod_HMAC_SHA1())
+        oauth_server.add_signature_method(oauth.SignatureMethod_PLAINTEXT())
+        oauth_server.add_signature_method(SignatureMethod_RSA_SHA1())
 
-    # # Verify request
-    # try:
+        # Ensure the passed keys and secrets are ascii, or HMAC will complain.
+        consumer = oauth.Consumer(consumer.key.encode(
+            'ascii', 'ignore'), consumer.secret.encode('ascii', 'ignore'))
+        if token is not None:
+            token = oauth.Token(token.key.encode(
+                'ascii', 'ignore'), token.secret.encode('ascii', 'ignore'))
 
-    oauth_server = oauth.Server()
-    oauth_server.add_signature_method(oauth.SignatureMethod_HMAC_SHA1())
-    oauth_server.add_signature_method(oauth.SignatureMethod_PLAINTEXT())
-    oauth_server.add_signature_method(SignatureMethod_RSA_SHA1())
-
-    # Ensure the passed keys and secrets are ascii, or HMAC will complain.
-    consumer = oauth.Consumer(consumer.key.encode(
-        'ascii', 'ignore'), consumer.secret.encode('ascii', 'ignore'))
-    if token is not None:
-        token = oauth.Token(token.key.encode(
-            'ascii', 'ignore'), token.secret.encode('ascii', 'ignore'))
-
-    logging.error("Verifying OAuth Request ...")
-
-    raise Exception(consumer.secret)
-
-    oauth_server.verify_request(oauth_request, consumer, token)
+        oauth_server.verify_request(oauth_request, consumer, token)
+    except oauth.Error:
+        return False
 
     return True
-
-    # except oauth.Error:
-    #     return False
-
-    # return True
 
 
 def is_xauth_request(request):
