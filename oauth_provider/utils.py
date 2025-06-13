@@ -165,6 +165,10 @@ def verify_oauth_request(request, oauth_request, consumer, token=None):
         if signature != expected_signature:
             raise Exception(f"OAuth: Signature mismatch, expected: {expected_signature}")
 
+        # Still check this for parity with the original signature check,
+        # may this throws something to indicate a bad request detail that
+        # was somehow missed by the signature check?
+        #
         _parameters = oauth_request.get_nonoauth_parameters()
     
     except oauth.Error:
