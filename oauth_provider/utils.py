@@ -107,6 +107,12 @@ def verify_oauth_request(request, oauth_request, consumer, token=None):
     """ Helper function to verify requests. """
     from .store import store
 
+    intial_timestamp = oauth_request['oauth_timestamp']
+    intial_timestamp = int(intial_timestamp)
+    
+    if intial_timestamp.bit_length() > 32:
+        return False, "Invalid Timestamp, must be 32-bits at most"
+
     # Check nonce
     if not store.check_nonce(request, oauth_request, oauth_request['oauth_nonce'], oauth_request['oauth_timestamp']):
         return False, "Invalid Nonce"
@@ -141,9 +147,6 @@ def verify_oauth_request(request, oauth_request, consumer, token=None):
             timestamp, nonce = oauth_request._get_timestamp_nonce()
             timestamp = int(timestamp) 
 
-            if timestamp.bit_length() > 32:
-                return False, "Provided timestamp is too large, must be compatible as a 32-bit integer."
-        
             # oauth_server._check_timestamp(timestamp)
             #
             now = int(time.time())
