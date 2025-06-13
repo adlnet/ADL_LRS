@@ -137,19 +137,19 @@ def verify_oauth_request(request, oauth_request, consumer, token=None):
         
         # oauth_server._check_signature(request, consumer, token)
         #
-        timestamp, nonce = oauth_request._get_timestamp_nonce()
-        if not isinstance(timestamp, int):
-            try:
-                timestamp = int(timestamp) 
-            except Exception:
-                return False, "Could not parse the provided timestamp"
+        try: 
+            timestamp, nonce = oauth_request._get_timestamp_nonce()
+            timestamp = int(timestamp) 
         
-        # oauth_server._check_timestamp(timestamp)
-        #
-        now = int(time.time())
-        lapsed = now - timestamp
-        if lapsed > oauth_server.timestamp_threshold:
-            return False, f"The timestamp lapse of {lapsed} is greater than the OAuth server threshold of {oauth_server.timestamp_threshold}."
+            # oauth_server._check_timestamp(timestamp)
+            #
+            now = int(time.time())
+            lapsed = now - timestamp
+            if lapsed > oauth_server.timestamp_threshold:
+                return False, f"The timestamp lapse of {lapsed} is greater than the OAuth server threshold of {oauth_server.timestamp_threshold}."
+
+        except oauth.Error:
+            return False, "Could not parse the provided timestamp, double-check your formatting."
 
         signature_method = oauth_server._get_signature_method(oauth_request)
 
