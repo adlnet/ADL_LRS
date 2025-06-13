@@ -2,6 +2,7 @@ import ast
 import binascii
 import urllib.request, urllib.parse, urllib.error
 import oauth2 as oauth
+import time
 
 from typing import Union
 
@@ -124,7 +125,46 @@ def verify_oauth_request(request, oauth_request, consumer, token=None):
             token = oauth.Token(token.key.encode(
                 'ascii', 'ignore'), token.secret.encode('ascii', 'ignore'))
 
-        oauth_server.verify_request(oauth_request, consumer, token)
+        # oauth_server.verify_request(oauth_request, consumer, token)
+
+        # oauth_server._check_version(request)
+        #
+        supplied_version = oauth_server._get_version(request)
+        expected_version = oauth_server.version
+
+        if supplied_version != expected_version:
+            raise Exception(f"OAUTH: Supplied Version did not match Expected version {expected_version}")
+        
+        # oauth_server._check_signature(request, consumer, token)
+        #
+        timestamp, nonce = request._get_timestamp_nonce()
+        
+        # oauth_server._check_timestamp(timestamp)
+        #
+        now = int(time.time())
+        lapsed = now - timestamp
+        if lapsed > oauth_server.timestamp_threshold:
+            raise Exception(f'The timestamp lapse of {lapsed} is greater than the OAuth server threshold of {oauth_server.timestamp_threshold}')
+
+        signature_method = oauth_server._get_signature_method(request)
+
+        signature = request.get('oauth_signature')
+        if signature is None:
+            raise Exception('Missing oauth_signature.')
+        
+        if isinstance(signature, str):
+            signature = signature.encode('ascii', 'ignore')
+
+        # Validate the signature.
+        # valid = signature_method.check(request, consumer, token, signature)
+        #
+        expected_signature = signature_method.sign(request, consumer, token)
+
+        if signature != expected_signature:
+            raise Exception(f"OAuth: Signature mismatch, expected: {expected_signature}")
+
+        _parameters = request.get_nonoauth_parameters()
+    
     except oauth.Error:
         return False
 
