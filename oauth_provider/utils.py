@@ -138,6 +138,8 @@ def verify_oauth_request(request, oauth_request, consumer, token=None):
         # oauth_server._check_signature(request, consumer, token)
         #
         timestamp, nonce = oauth_request._get_timestamp_nonce()
+        if not isinstance(timestamp, int):
+            timestamp = int(timestamp) 
         
         # oauth_server._check_timestamp(timestamp)
         #
