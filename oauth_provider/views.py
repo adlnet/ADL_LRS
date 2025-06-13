@@ -47,8 +47,9 @@ def request_token(request):
     except InvalidConsumerError:
         return HttpResponse('Invalid consumer.', status=401)
 
-    if not verify_oauth_request(request, oauth_request, consumer):
-        return HttpResponseBadRequest('Could not verify OAuth request.')
+    valid, failure_reason = verify_oauth_request(request, oauth_request, consumer)
+    if not valid:
+        return HttpResponseBadRequest(f'Could not verify OAuth request -- {failure_reason}')
 
     try:
         request_token = store.create_request_token(
@@ -185,8 +186,9 @@ def access_token(request):
             return HttpResponse('Request Token not approved by the user.', status=401)
 
         # Verify Signature
-        if not verify_oauth_request(request, oauth_request, consumer, request_token):
-            return HttpResponseBadRequest('Could not verify OAuth request.')
+        valid, failure_reason = verify_oauth_request(request, oauth_request, consumer, request_token)
+        if not valid:
+            return HttpResponseBadRequest(f'Could not verify OAuth request -- {failure_reason}')
 
         # Check Verifier
         if oauth_request.get('oauth_verifier', None) != request_token.verifier:
@@ -205,8 +207,9 @@ def access_token(request):
             return HttpResponseBadRequest('xAuth not allowed for this method')
 
         # Check Signature
-        if not verify_oauth_request(request, oauth_request, consumer):
-            return HttpResponseBadRequest('Could not verify xAuth request.')
+        valid, failure_reason = verify_oauth_request(request, oauth_request, consumer)
+        if not valid:
+            return HttpResponseBadRequest(f'Could not verify xAuth request -- {failure_reason}')
 
         user = authenticate(
             x_auth_username=oauth_request.get_parameter('x_auth_username'),
