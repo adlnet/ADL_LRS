@@ -107,10 +107,10 @@ def verify_oauth_request(request, oauth_request, consumer, token=None):
     """ Helper function to verify requests. """
     from .store import store
 
-    intial_timestamp = oauth_request['oauth_timestamp']
-    intial_timestamp = int(intial_timestamp)
+    initial_timestamp = oauth_request['oauth_timestamp']
+    initial_timestamp = int(initial_timestamp)
     
-    if intial_timestamp.bit_length() > 32:
+    if initial_timestamp.bit_length() > 32:
         return False, "Invalid Timestamp, must be 32-bits at most"
 
     # Check nonce
