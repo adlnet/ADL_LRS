@@ -139,7 +139,10 @@ def verify_oauth_request(request, oauth_request, consumer, token=None):
         #
         timestamp, nonce = oauth_request._get_timestamp_nonce()
         if not isinstance(timestamp, int):
-            timestamp = int(timestamp) 
+            try:
+                timestamp = int(timestamp) 
+            except Exception:
+                return False, "Could not parse the provided timestamp"
         
         # oauth_server._check_timestamp(timestamp)
         #
