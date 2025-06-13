@@ -129,7 +129,7 @@ def verify_oauth_request(request, oauth_request, consumer, token=None):
 
         # oauth_server._check_version(request)
         #
-        supplied_version = oauth_server._get_version(request)
+        supplied_version = oauth_server._get_version(oauth_request)
         expected_version = oauth_server.version
 
         if supplied_version != expected_version:
@@ -137,7 +137,7 @@ def verify_oauth_request(request, oauth_request, consumer, token=None):
         
         # oauth_server._check_signature(request, consumer, token)
         #
-        timestamp, nonce = request._get_timestamp_nonce()
+        timestamp, nonce = oauth_request._get_timestamp_nonce()
         
         # oauth_server._check_timestamp(timestamp)
         #
@@ -146,9 +146,9 @@ def verify_oauth_request(request, oauth_request, consumer, token=None):
         if lapsed > oauth_server.timestamp_threshold:
             raise Exception(f'The timestamp lapse of {lapsed} is greater than the OAuth server threshold of {oauth_server.timestamp_threshold}')
 
-        signature_method = oauth_server._get_signature_method(request)
+        signature_method = oauth_server._get_signature_method(oauth_request)
 
-        signature = request.get('oauth_signature')
+        signature = oauth_request.get('oauth_signature')
         if signature is None:
             raise Exception('Missing oauth_signature.')
         
@@ -158,12 +158,12 @@ def verify_oauth_request(request, oauth_request, consumer, token=None):
         # Validate the signature.
         # valid = signature_method.check(request, consumer, token, signature)
         #
-        expected_signature = signature_method.sign(request, consumer, token)
+        expected_signature = signature_method.sign(oauth_request, consumer, token)
 
         if signature != expected_signature:
             raise Exception(f"OAuth: Signature mismatch, expected: {expected_signature}")
 
-        _parameters = request.get_nonoauth_parameters()
+        _parameters = oauth_request.get_nonoauth_parameters()
     
     except oauth.Error:
         return False
