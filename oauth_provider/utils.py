@@ -140,6 +140,9 @@ def verify_oauth_request(request, oauth_request, consumer, token=None):
         try: 
             timestamp, nonce = oauth_request._get_timestamp_nonce()
             timestamp = int(timestamp) 
+
+            if timestamp.bit_length() > 32:
+                return False, "Provided timestamp is too large, must be compatible as a 32-bit integer."
         
             # oauth_server._check_timestamp(timestamp)
             #
