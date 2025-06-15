@@ -1,4 +1,4 @@
-FROM python:3.9
+FROM cgr.dev/chainguard/python:latest-dev
 
 ENV UWSGI_PIP_VERSION 2.0.20
 
