@@ -180,4 +180,154 @@
   gtag('config', 'G-KJN1154GC2');
 </script>
 
+
+
+<style>
+  .model-full-body {
+    font-family: Arial, sans-serif;
+    margin: 50px;
+  }
+
+  /* Backdrop */
+  .modal-backdrop {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.5);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease;
+  }
+  .modal-backdrop.active {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  /* Modal */
+  .modal {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(0.95);
+    background: #fff;
+    border-radius: 6px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+    width: 400px;
+    max-width: 90%;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    z-index: 1001;
+  }
+  .modal.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  .modal-header, .modal-footer {
+    padding: 12px 16px;
+    background: #f5f5f5;
+  }
+  .modal-header {
+    border-bottom: 1px solid #ddd;
+  }
+  .modal-footer {
+    border-top: 1px solid #ddd;
+    text-align: right;
+  }
+  .modal-body {
+    padding: 16px;
+  }
+
+  .close-modal-btn {
+    float: right;
+    border: none;
+    background: none;
+    font-size: 20px;
+    cursor: pointer;
+  }
+
+  .modal-btn {
+    padding: 6px 12px;
+    border: 1px solid #ccc;
+    background: #eee;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .modal-btn:hover {
+    background: #ddd;
+  }
+</style>
+<div class="modal-full-body">
+
+  <h2>Welcome!</h2>
+  <p>This page shows a modal only the first time you visit.</p>
+
+  <div id="modalBackdrop" class="modal-backdrop"></div>
+
+  <div id="myModal" class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title" id="announcementLabel" style="color: #004d97">
+					Notice: xAPI Tool Sunsetting
+      </h3>
+    </div>
+    <div class="modal-body">
+        <b>Notice</b>: As part of ADL's lifecycle management process, several legacy xAPI community tools -- including the 
+				sample ADL LRS, LRS Conformance Test Suite and Adopter Registry, and the xAPI Profile Server -- will be available 
+				on the ADL GitHub site, free to download and self-host within your organization's own network boundaries: 
+				<a target="_blank" href="https://github.com/orgs/adlnet/repositories?type=all">ADL GitHub</a>
+				
+				<hr/>
+
+				If you would like to use these tools after November 18th, please download from our GitHub repo, and if 
+				you need any assistance in installing the system, reach out to the ADL support team if you have any 
+				questions at <a href="mailto:help@adlnet.gov">help@adlnet.gov</a>.
+    </div>
+    <div class="modal-footer">
+      <button id="closeModalmodal-btn" class="modal-btn">Got it</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+  const closebtn = document.getElementById('closeModalmodal-btn');
+  const modal = document.getElementById('myModal');
+  const backdrop = document.getElementById('modalBackdrop');
+
+  function openModal() {
+    modal.classList.add('active');
+    backdrop.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeModal() {
+    modal.classList.remove('active');
+    backdrop.classList.remove('active');
+    document.body.style.overflow = '';
+    localStorage.setItem('hasSeenModal', 'true'); // mark as seen
+  }
+
+  // Check if user has already seen the modal
+  window.addEventListener('DOMContentLoaded', () => {
+    const hasSeen = localStorage.getItem('hasSeenModal');
+    if (!hasSeen) {
+      openModal();
+    }
+  });
+
+  // Close handlers
+  closebtn.addEventListener('click', closeModal);
+  backdrop.addEventListener('click', closeModal);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal.classList.contains('active')) {
+      closeModal();
+    }
+  });
+</script>
+
+</body>
+
+
+
 {% endblock content %}
