@@ -248,6 +248,7 @@ a.pure-button-primary {
     }
     /* We want to give the content area some more padding */
     .content {
+        padding-top: 100px;
         padding: 1em;
     }
 
